@@ -240,8 +240,8 @@ const PLACES={bed:'내 방',living:'거실',library:'도서관',park:'공원',ki
 // 지역: 우리 동네 / 바이에른 궁 (이동하기는 같은 지역 안에서만, 다른 지역은 지도로)
 const REGION_OF={bed:'home',living:'home',library:'home',park:'home',kitchen:'home',brother:'home',dorm:'home',garden:'bavaria',hall:'bavaria',nikolaus:'bavaria',prince:'bavaria'};
 const HIDDEN_PLACES=['brother','dorm'], LOCKED_PLACES=['nikolaus'];   // 니콜라우스 방: 해금 조건 추가 예정
-const MAP_NODES=[{id:'home',name:'우리 동네',x:22,y:58,entry:'bed'},{id:'bavaria',name:'바이에른 궁',x:76,y:30,entry:'garden'},
-  {id:null,name:'???',x:134,y:62},{id:null,name:'???',x:186,y:26},{id:null,name:'???',x:236,y:56}];
+const MAP_NODES=[{id:'home',name:'우리 동네',x:22,y:46,entry:'bed'},{id:'bavaria',name:'바이에른 궁',x:72,y:22,entry:'garden'},
+  {id:null,name:'???',x:122,y:46},{id:null,name:'???',x:172,y:22},{id:null,name:'???',x:222,y:46}];   // 정사각형 칸 지그재그 (이름은 칸 아래)
 const MAP_W=260;
 function regionNow(){return REGION_OF[st.room]||'home';}
 function withRo(w){const c=w.charCodeAt(w.length-1)-0xAC00;if(c<0||c>11171)return w+'로';const j=c%28;return w+(j===0||j===8?'로':'으로');}   // brother: 이동 메뉴엔 안 나옴
@@ -711,16 +711,19 @@ function drawMap(t){   // 지역 지도 (초원 위 구불구불한 길 + 메모
   for(const [tx,ty] of [[48,70],[108,14],[160,72],[214,66],[8,20],[250,14],[124,44]]){const x=tx+ox;if(x<-10||x>W+10)continue;
     ctx.fillStyle='#6fb070';ctx.beginPath();ctx.arc(x,y0+ty,5,0,7);ctx.fill();ctx.fillStyle='#86c97f';ctx.beginPath();ctx.arc(x-1,y0+ty-1,3,0,7);ctx.fill();R(ctx,x,y0+ty+4,1,3,'#7a5236');}
   ctx.fillStyle='#8fd0ec';for(let x=0;x<MAP_W;x+=2){const yy=y0+80+Math.sin(x/14)*3;if(x+ox>=0&&x+ox<W)ctx.fillRect(x+ox,yy,2,4);}   // 시냇물
-  ctx.strokeStyle='#f3dfb8';ctx.lineWidth=3;ctx.setLineDash([3,2]);ctx.beginPath();
-  MAP_NODES.forEach((p,i)=>{const x=p.x+ox,y=y0+p.y+4;if(!i)ctx.moveTo(x,y);else{const q=MAP_NODES[i-1];ctx.bezierCurveTo(q.x+ox+24,y0+q.y+26,p.x+ox-24,y0+p.y-16,x,y);}});ctx.stroke();ctx.setLineDash([]);
+  const SQ=14;
+  ctx.strokeStyle='#6f87a6';ctx.lineWidth=1.5;ctx.beginPath();   // 칸을 잇는 직선
+  MAP_NODES.forEach((p,i)=>{const x=p.x+ox,y=y0+p.y;if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
   ctx.font='bold 7px sans-serif';ctx.textAlign='center';
-  MAP_NODES.forEach((p,i)=>{const x=p.x+ox,y=y0+p.y,on=!!p.id,sel=i===M.cur;
-    ctx.fillStyle='rgba(59,42,70,.35)';ctx.fillRect(x-19,y-6,40,14);
-    ctx.fillStyle=on?'#fff7e0':'#c9c4cc';ctx.fillRect(x-20,y-7,40,14);
-    ctx.fillStyle=on?'#ffb3cf':'#a9a4ad';ctx.fillRect(x-5,y-9,10,3);   // 테이프
-    ctx.strokeStyle=sel?'#ff4f8f':(on?'#8a6a4a':'#8d8892');ctx.lineWidth=sel?2:1;ctx.strokeRect(x-20,y-7,40,14);
-    ctx.fillStyle=on?'#3b2a46':'#7d7882';ctx.fillText(p.name,x,y+3);
-    if(p.id===regionNow()){ctx.fillStyle='#ff4f8f';ctx.beginPath();ctx.moveTo(x,y-10);ctx.lineTo(x-3,y-15);ctx.lineTo(x+3,y-15);ctx.closePath();ctx.fill();}});
+  MAP_NODES.forEach((p,i)=>{const x=p.x+ox,y=y0+p.y,on=!!p.id,sel=i===M.cur,h=SQ/2;
+    ctx.fillStyle='rgba(59,42,70,.3)';ctx.fillRect(x-h+1,y-h+1,SQ,SQ);
+    ctx.fillStyle=on?'#fff7e0':'#c9c4cc';ctx.fillRect(x-h,y-h,SQ,SQ);
+    ctx.strokeStyle=sel?'#ff4f8f':(on?'#6f87a6':'#8d8892');ctx.lineWidth=sel?2:1.5;ctx.strokeRect(x-h,y-h,SQ,SQ);
+    if(sel&&((t/300|0)%2)){ctx.fillStyle='rgba(255,79,143,.25)';ctx.fillRect(x-h,y-h,SQ,SQ);}
+    if(!on){ctx.fillStyle='#8d8892';ctx.fillText('?',x,y+3);}
+    ctx.fillStyle='rgba(255,255,255,.75)';const tw=ctx.measureText(p.name).width;ctx.fillRect(x-tw/2-2,y+h+2,tw+4,9);
+    ctx.fillStyle=on?'#3b2a46':'#7d7882';ctx.fillText(p.name,x,y+h+9);
+    if(p.id===regionNow()){ctx.fillStyle='#ff4f8f';ctx.beginPath();ctx.moveTo(x,y-h-2);ctx.lineTo(x-3,y-h-7);ctx.lineTo(x+3,y-h-7);ctx.closePath();ctx.fill();}});
   R(ctx,0,y0+ROOM_H-11,W,11,'rgba(59,42,70,.75)');ctx.fillStyle='#fff';ctx.font='7px sans-serif';
   ctx.fillText('◀ A   ● 가운데: 선택   C ▶',64,y0+ROOM_H-3);ctx.textAlign='start';
 }
