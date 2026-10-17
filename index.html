@@ -291,7 +291,7 @@ const TEST={sickAfter:60*60*1000, cryAfter:10*60*1000, hungryAfter:3*60*60*1000,
 
 const now0=performance.now(), D0=Date.now();
 const st={room:'bed',outfit:'basic',mode:'idle',modeT:now0,menu:null,cur:0,trans:0,transTo:null,dlg:null,
-          sick:false,cry:false,hungry:false,lastSleep:D0,lastPet:D0,lastEat:D0,gold:0,owned:{},wear:{},lastCook:null,drunkUntil:0,bro:null,poison:0,script:null,inf:null,cookStreak:0,chefOk:false,dead:false,cookOk:0,glovesOk:false,bunnyOk:false,relMaxSince:0,artifactOk:false,maskOk:false,berryOk:false,hungerAsked:false,letter:0,rel:0,relT:D0,withLeo:false,theme:'1',bg:{type:'preset',i:0},lucX:0,leo:null,pickFace:'idle'};
+          sick:false,cry:false,hungry:false,lastSleep:D0,lastPet:D0,lastEat:D0,gold:0,owned:{},wear:{},lastCook:null,drunkUntil:0,bro:null,poison:0,script:null,inf:null,cookStreak:0,chefOk:false,dead:false,cookOk:0,glovesOk:false,bunnyOk:false,relMaxSince:0,artifactOk:false,maskOk:false,berryOk:false,hungerAsked:false,letter:0,letterDone:0,rel:0,relT:D0,withLeo:false,theme:'1',bg:{type:'preset',i:0},lucX:0,leo:null,pickFace:'idle'};
 
 /* ================= sound ================= */
 let AC=null;
@@ -1034,7 +1034,8 @@ function doAction(m){
   if(m.id==='explore'&&(st.letter|0)>=10&&Math.random()<ESCAPE_CHANCE){escapeStart();return;}   // 편지 완성 후 30%: 탈출 미니게임
   if(m.id==='explore'){setMode('talk');   // 20%: 편지 조각 (10개 모으면 완성)
     if((st.letter|0)<10 && Math.random()<.2){st.letter=(st.letter|0)+1;saveGame();
-      say(st.letter<10?'✦ 어떤 편지의 일부를 찾았다. ('+st.letter+'/10)':'✦ 편지가 완성이 되었다. 보자... 친애하는 나의 동생 루카... 윽 읽기 싫다.','');}
+      if(st.letter>=10){st.letterDone=(st.letterDone|0)+1;saveGame();}
+      say(st.letter<10?'✦ 어떤 편지의 일부를 찾았다. ('+st.letter+'/10)':'✦ 편지가 완성이 되었다. 보자... '+LETTER_TEXT[Math.min(st.letterDone,LETTER_TEXT.length)-1],'');}
     else say(Math.random()<.5?'아무 것도 찾지 못했다.':'형이 나를 바라본다. 그만두자.','');
     return;}
   if(m.id==='heal'){setMode('leo');   // 독약 스택 전부 해소
@@ -1046,6 +1047,9 @@ function doAction(m){
 
 
 /* ================= 미니게임: 형의 방 탈출 (리듬) ================= */
+// 편지를 완성할 때마다 이어서 읽음 (마지막 줄은 계속 반복)
+const LETTER_TEXT=['친애하는 나의 동생 루카... 윽 읽기 싫다.','네가 아주 어렸을 때가 바로 어제 같은데... 욱','어느새 이렇게 장성해 우리 집안을... 우욱',
+  '빛내는 훌륭한 일원이 되었다니 형은 ... 우욱','참으로 기쁘구나. 하지만 루카 이건.... 웩','아 이젠 역겨워 못 읽겠다.'];
 const ESCAPE_CHANCE=.3;   // 편지 10/10 이후 탐색 시 형이 자리를 비울 확률
 const MG=(()=>{
   const CFG={combo:10,timeLimit:120000,perfect:80,good:150,speed:50,holdRate:.28,gapMin:520,gapMax:1250};
@@ -1402,13 +1406,13 @@ function saveGame(){
   if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
-      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,rel:st.rel,relT:st.relT,withLeo:st.withLeo,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
+      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,rel:st.rel,relT:st.relT,withLeo:st.withLeo,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
   }catch(e){}
 }
 function loadGame(){
   try{
     const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return;
-    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','rel','relT','withLeo']) if(d[k]!==undefined) st[k]=d[k];
+    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','rel','relT','withLeo']) if(d[k]!==undefined) st[k]=d[k];
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
