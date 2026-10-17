@@ -1,6 +1,6 @@
 /* LUCASGOTCHI service worker
    - 업데이트를 올릴 때마다 아래 VERSION 숫자를 올려주세요. */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'lucasgotchi-' + VERSION;
 const CORE = [
   './',
@@ -38,6 +38,17 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(c => c.put('./index.html', copy));
         return res;
       }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // 매니페스트·아이콘: 네트워크 우선 (설치 정보가 옛 캐시에 묶이지 않도록), 오프라인이면 캐시
+  if (url.origin === location.origin && /\.(webmanifest|png)$/.test(url.pathname)) {
+    e.respondWith(
+      fetch(req).then(res => {
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+        return res;
+      }).catch(() => caches.match(req))
     );
     return;
   }
