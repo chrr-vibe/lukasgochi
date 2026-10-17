@@ -552,7 +552,7 @@ const ICON_OF={read:'book',pick:'book',leo:'talk',eli:'talk',call:'talk',think:'
 function drawBars(t){
   R(ctx,0,0,W,ROOM_Y,'#fff4f9');R(ctx,0,ROOM_Y-1,W,1,'#e8b9d2');
   R(ctx,0,ROOM_Y+ROOM_H,W,H-ROOM_Y-ROOM_H,'#fff4f9');R(ctx,0,ROOM_Y+ROOM_H,W,1,'#e8b9d2');
-  let hl = st.menu==='act' ? ACTS[st.cur].id : st.menu==='root' ? ({move:'move',talk:'talk',status:'room',act:''}[ROOT[st.cur].id]) : st.mode;
+  let hl = st.menu==='act' ? (menuItems()[st.cur]||{}).id : st.menu==='root' ? ({move:'move',talk:'talk',status:'room',act:''}[ROOT[st.cur].id]) : st.mode;
   hl = ICON_OF[hl]||hl;
   const draw=(arr,y)=>arr.forEach((id,i)=>{
     const x=12+i*30;
@@ -891,7 +891,7 @@ function statusHTML(){
 function menuItems(){
   if(st.menu==='choice') return [{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
-  if(st.menu==='act')  return ACTS;
+  if(st.menu==='act')  return ACTS.filter(inRoom);   // 지금 장소에서 할 수 있는 행동만
   if(st.menu==='move') return Object.keys(PLACES).filter(k=>k!==st.room&&k!=='brother'&&k!=='dorm').map(k=>({id:'go',to:k}));
   if(st.menu==='status') return [{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'}];
   if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:st.owned[x.key]?'보유중':(x.lock&&x.lock())?'잠김':x.price+'G'}));
