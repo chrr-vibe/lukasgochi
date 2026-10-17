@@ -277,6 +277,7 @@ function isNight(){const h=gameHour();return h>=19||h<6;}       // 오후 7시 ~
 function infWindow(){return gameHour()===15;}                    // 오후 3~4시: 도서관에서 레오나르드 → 잠입
 function chefWindow(){return gameHour()===18;}                   // 오후 6~7시: 주방에서 요리 연속 10번 → 요리사 모자
 const CHEF_STREAK=10, POISON_WARN=3, NIGHT_DIM='rgba(22,18,64,.32)';
+const ARTIFACT_MS=2*60*60*1000;   // 관계 최대를 현실 2시간 유지하면 아티팩트 해금
 const ROB_CHANCE=.3, COOK_OK=.3, GLOVE_STREAK=2, BUNNY_SLEEP=10000;   // 밤 공원 불량배 / 요리 성공률 / 장갑: 연속 성공 / 토끼 잠옷: 밤에 10초 잠
 const INF_TALK=[['에라스미오스.','내 사촌. 제롬.'],['조금 떨어져봐.','모른 척을 한다.'],['어이.','이름을 제대로 불러줘.'],['너무 가깝잖아.','모른 척을 한다.'],['레오나르드.','모른 척을 한다.']];
 const POISON_CHANCE=.3;   // 형의 방 대화하기: 30% 확률로 독약
@@ -285,7 +286,7 @@ const TEST={sickAfter:60*60*1000, cryAfter:10*60*1000, hungryAfter:3*60*60*1000,
 
 const now0=performance.now(), D0=Date.now();
 const st={room:'bed',outfit:'basic',mode:'idle',modeT:now0,menu:null,cur:0,trans:0,transTo:null,dlg:null,
-          sick:false,cry:false,hungry:false,lastSleep:D0,lastPet:D0,lastEat:D0,gold:0,owned:{},wear:{},lastCook:null,drunkUntil:0,bro:null,poison:0,script:null,inf:null,cookStreak:0,chefOk:false,dead:false,cookOk:0,glovesOk:false,bunnyOk:false,rel:0,relT:D0,withLeo:false,theme:'1',bg:{type:'preset',i:0},lucX:0,leo:null,pickFace:'idle'};
+          sick:false,cry:false,hungry:false,lastSleep:D0,lastPet:D0,lastEat:D0,gold:0,owned:{},wear:{},lastCook:null,drunkUntil:0,bro:null,poison:0,script:null,inf:null,cookStreak:0,chefOk:false,dead:false,cookOk:0,glovesOk:false,bunnyOk:false,relMaxSince:0,artifactOk:false,maskOk:false,rel:0,relT:D0,withLeo:false,theme:'1',bg:{type:'preset',i:0},lucX:0,leo:null,pickFace:'idle'};
 
 /* ================= sound ================= */
 let AC=null;
@@ -618,6 +619,15 @@ function drawEars(c,t){
 }
 function isDrunk(){return Date.now()<st.drunkUntil;}
 function getDrunk(){st.drunkUntil=Date.now()+DRUNK_MS;saveGame();}   // 술 취하기: 옷은 그대로, 얼굴만 2분간 바뀜
+function drawArtifact(c){   // 아티팩트: 양쪽 귀걸이를 레오나르드 눈색 보석으로
+  c.save();
+  for(const [ex,ey] of [[65.8,101.5],[127.2,101.6]]){
+    c.fillStyle='#4f7fae';c.beginPath();c.arc(ex,ey,2.9,0,7);c.fill();
+    c.fillStyle='#a9d8f6';c.beginPath();c.arc(ex,ey,2.1,0,7);c.fill();
+    c.fillStyle='#ffffff';c.fillRect(ex-1.3,ey-1.4,1.1,1.1);
+  }
+  c.restore();
+}
 function drawChefHat(c){   // 요리사 모자 (192px 스프라이트 좌표)
   c.save();c.lineWidth=2;c.strokeStyle='#3b2a46';c.lineJoin='round';
   c.fillStyle='#ffffff';c.beginPath();
@@ -675,6 +685,7 @@ function drawLucas(t,x){
   if(!heart && isDrunk() && !['sleep','eat','taste'].includes(st.mode)) octx.drawImage(imgs.drunk,0,0);
   if(!disguise && st.wear.monocle && (heart || !['book','news','read'].includes(st.mode))) octx.drawImage(imgs.monocle,0,0);   // 독서용 안경 쓸 땐 벗음
   swayBang(octx, key==='heart'?imgs.heartBang:key==='broLuc'?imgs.broHeadBang:key==='jerome'?imgs.jeromeBang:bang, bangAmp(t,st.mode==='sleep'));
+  if(!disguise && st.wear.artifact) drawArtifact(octx);
   if(!disguise && st.wear.chef) drawChefHat(octx);
   if(!heart && ['book','news','read'].includes(st.mode)) octx.drawImage(imgs.glasses,0,0);
   ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
@@ -845,12 +856,14 @@ function frame(now){
   if(st.cookStreak && !(chefWindow()&&st.room==='kitchen')) st.cookStreak=0;
   runScript(t);
   if(st.rel>0){ while(st.rel>0 && DN-st.relT>=REL_DECAY){st.rel--;st.relT+=REL_DECAY;} if(st.rel===0)st.relT=DN; } else st.relT=DN;
+  if(st.rel>=REL_MAX){ if(!st.relMaxSince) st.relMaxSince=DN; else if(!st.artifactOk && DN-st.relMaxSince>=ARTIFACT_MS){st.artifactOk=true;saveGame();toast('✦ 아티팩트 해금! (상점)',2200);} }
+  else st.relMaxSince=0;
   st.hungry = DN-st.lastEat > TEST.hungryAfter;
   // ---- 자동 해제 ----
   const el=t-st.modeT;
   if(['news','book','read'].includes(st.mode) && el>TEST.timed){ const byLeo=st.mode==='news'&&withLeoNow(); setMode('talk'); say(byLeo?'레오나르드가 신문을 읽어주었다.':'유익했다.'); }
   else if(st.mode==='think' && el>TEST.timed && isNight() && st.room==='park' && Math.random()<ROB_CHANCE){   // 밤 공원: 불량배에게 골드 전부
-    st.gold=0;saveGame();setMode('leo');st.script={i:0,lines:[['가진 거 다 내놔.','불량배'],['살다살다 삥을 뜯겨본다...','루카스']],after:()=>setMode('idle')};say('가진 거 다 내놔.','불량배'); }
+    st.gold=0;st.maskOk=true;saveGame();setMode('leo');st.script={i:0,lines:[['가진 거 다 내놔.','불량배'],['살다살다 삥을 뜯겨본다...','루카스']],after:()=>setMode('idle')};say('가진 거 다 내놔.','불량배'); }
   else if(st.mode==='think' && el>TEST.timed){ setMode('talk'); if(Math.random()<.5){st.gold+=100;saveGame();say('✦ 사색하다 100골드를 주웠다! (+100G)','');} else say('좋은 사색이었다.'); }
   else if(st.mode==='cook' && el>3000){ const ok=Math.random()<COOK_OK; st.cookOk=ok?(st.cookOk|0)+1:0; const glove=st.cookOk>=GLOVE_STREAK&&!st.glovesOk; if(glove)st.glovesOk=true; st.lastCook=ok?'ok':'fail'; if(ok)st.gold+=100; st.pickFace=ok?'smile':'idle'; setMode('pick'); const chef=st.cookStreak>=CHEF_STREAK&&!st.chefOk; if(chef)st.chefOk=true; say((ok?'✦ 성공했다! (+100G)':'✦ 실패했다…')+(chef?' ✦ 요리사 모자 해금! (상점)':'')+(glove?' ✦ 빨간 고무장갑 해금! (상점)':''),''); saveGame(); }
   else if(st.mode==='taste' && el>2500){ const lc=st.lastCook; setMode('talk'); say(lc==='ok'?'나도 이제 요리왕이다.':lc==='fail'?'레오나르드는 먹어줄까?':'…아직 만든 게 없잖아.'); }
@@ -971,7 +984,7 @@ function setMode(m){
   if(st.menu) renderMenu();
 }
 function closeMenu(){st.menu=null;renderMenu();}
-const SHOP=[{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'빨간 고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk}];
+const SHOP=[{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'빨간 고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk},{key:'artifact',name:'아티팩트',price:0,lock:()=>!st.artifactOk}];   // 마스크(maskOk)는 그림 받으면 추가
 function openSub(name){st.menu=name;st.cur=0;renderMenu();beep(990,.05);}
 function doAction(m){
   if(st.menu==='choice'){ if(m.id==='yes'){beep(1320,.08);infStart();} else {closeMenu();beep(520,.06);if(st.leo){st.leo.phase='exit';st.leo.t0=performance.now();}} return; }
@@ -1308,13 +1321,13 @@ function saveGame(){
   if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
-      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,rel:st.rel,relT:st.relT,withLeo:st.withLeo,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
+      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,rel:st.rel,relT:st.relT,withLeo:st.withLeo,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
   }catch(e){}
 }
 function loadGame(){
   try{
     const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return;
-    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','rel','relT','withLeo']) if(d[k]!==undefined) st[k]=d[k];
+    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','rel','relT','withLeo']) if(d[k]!==undefined) st[k]=d[k];
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
