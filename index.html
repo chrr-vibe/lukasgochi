@@ -235,7 +235,16 @@ load('bang',SPR.bang); load('tail',SPR.tail); load('leo',SPR.leo); load('glasses
 for(const o in SPR.outfits) for(const k in SPR.outfits[o]) load(o+':'+k,SPR.outfits[o][k]);
 
 /* ================= data ================= */
-const PLACES={bed:'내 방',living:'거실',library:'도서관',park:'공원',kitchen:'주방',brother:'형의 방',dorm:'기숙사'};   // brother: 이동 메뉴엔 안 나옴
+const PLACES={bed:'내 방',living:'거실',library:'도서관',park:'공원',kitchen:'주방',brother:'형의 방',dorm:'기숙사',
+  garden:'전정',hall:'그레이트 홀',nikolaus:'니콜라우스 방',prince:'왕세자 방'};
+// 지역: 우리 동네 / 바이에른 궁 (이동하기는 같은 지역 안에서만, 다른 지역은 지도로)
+const REGION_OF={bed:'home',living:'home',library:'home',park:'home',kitchen:'home',brother:'home',dorm:'home',garden:'bavaria',hall:'bavaria',nikolaus:'bavaria',prince:'bavaria'};
+const HIDDEN_PLACES=['brother','dorm'], LOCKED_PLACES=['nikolaus'];   // 니콜라우스 방: 해금 조건 추가 예정
+const MAP_NODES=[{id:'home',name:'우리 동네',x:22,y:58,entry:'bed'},{id:'bavaria',name:'바이에른 궁',x:76,y:30,entry:'garden'},
+  {id:null,name:'???',x:134,y:62},{id:null,name:'???',x:186,y:26},{id:null,name:'???',x:236,y:56}];
+const MAP_W=260;
+function regionNow(){return REGION_OF[st.room]||'home';}
+function withRo(w){const c=w.charCodeAt(w.length-1)-0xAC00;if(c<0||c>11171)return w+'로';const j=c%28;return w+(j===0||j===8?'로':'으로');}   // brother: 이동 메뉴엔 안 나옴
 const ACTS=[
   {id:'book', label:'책 읽기',        room:'living'},
   {id:'news', label:'신문 읽기',      room:'bed'},
@@ -247,7 +256,12 @@ const ACTS=[
   {id:'heal', label:'치료 받기',      room:'bed'},
   {id:'explore',label:'탐색하기',     room:'brother'},
   {id:'sync',  label:'이심전심',     room:'dorm'},      // 잠입 중: 에라스미오스와 같은 하트 고르기 (한 번)   // 형의 방에서 할 수 있는 유일한 행동   // 레오나르드와 함께 있고 독약 상태일 때만
-  {id:'think',label:'사색하기',       room:'park'},
+  {id:'think',label:'사색하기',       room:['park','garden']},
+  {id:'gleo', label:'레오나르드 만나기',room:'garden'},   // 관계 최대일 때만
+  {id:'wait', label:'기다리기',       room:'hall'},
+  {id:'pbook',label:'책 읽기',        room:'prince'},
+  {id:'pnews',label:'신문 읽기',      room:'prince'},
+  {id:'ptalk',label:'대화하기',       room:'prince'},
   {id:'cook', label:'요리하기',       room:'kitchen'},
   {id:'taste',label:'시식하기',       room:'kitchen'},
   {id:'pick', label:'책 고르기',      room:'library'},
@@ -485,6 +499,56 @@ function makeRoom(room,lampOn,night){
     // trunk + rug
     R(x,40,62,14,8,'#6b3d24');R(x,40,62,14,2,'#8a5434');R(x,46,64,2,2,'#c9a24a');
     R(x,36,74,56,12,'#2f4f7a');R(x,38,76,52,8,'#3e6694');for(let i=40;i<90;i+=6)R(x,i,79,2,2,'#c9a24a');
+  }else if(room==='garden'){
+    // ---- 바이에른 궁 전정 (왕궁 정원) ----
+    R(x,0,0,128,26,'#bfe3ff');R(x,0,20,128,6,'#d8efff');
+    R(x,8,8,112,22,'#fbf3e0');R(x,8,8,112,2,'#e3c26a');                       // 궁전 정면
+    for(let i=12;i<118;i+=8){R(x,i,13,4,7,'#7fb6e0');R(x,i,13,4,1,'#e3c26a');R(x,i+1,21,2,7,'#e9dcc0');}
+    for(const [cx,w] of [[18,14],[64,22],[110,14]]){x.fillStyle='#5f9fd6';x.beginPath();x.arc(cx,8,w/2,Math.PI,0);x.fill();R(x,cx,0,1,8-w/2,'#e3c26a');R(x,cx-1,0,3,2,'#ffd36b');}
+    R(x,0,28,128,26,'#7fc48a');                                                  // 잔디
+    R(x,52,28,24,60,'#efe2c2');x.fillStyle='#efe2c2';x.beginPath();x.moveTo(52,54);x.lineTo(76,54);x.lineTo(96,88);x.lineTo(32,88);x.closePath();x.fill();   // 자갈길
+    for(const sx of [6,92]){R(x,sx,34,30,14,'#3f8f4f');R(x,sx+2,36,26,10,'#4fa85f');               // 문양 화단
+      for(let i=sx+4;i<sx+28;i+=6){R(x,i,38,3,3,'#ff8fb1');R(x,i+2,42,3,3,'#ffd36b');}}
+    for(const tx of [4,40,86,122]){x.fillStyle='#2f7f45';x.beginPath();x.moveTo(tx,24);x.lineTo(tx+4,40);x.lineTo(tx-4,40);x.closePath();x.fill();R(x,tx-1,40,2,3,'#7a5236');}   // 원뿔 정원수
+    x.fillStyle='#d9e4ef';x.beginPath();x.ellipse(64,44,14,5,0,0,7);x.fill();x.fillStyle='#8fd0ec';x.beginPath();x.ellipse(64,44,11,3.5,0,0,7);x.fill();   // 분수
+    R(x,63,33,3,10,'#e3c26a');R(x,60,32,9,2,'#e3c26a');for(let i=0;i<5;i++)R(x,58+i*3,28+(i%2),1,4,'#cfeeff');
+    R(x,0,54,128,34,'#6fb87a');for(let j=56;j<88;j+=4)for(let i=(j%8?2:6);i<128;i+=8)R(x,i,j,1,1,'#85c98e');
+    x.fillStyle='#efe2c2';x.beginPath();x.moveTo(44,54);x.lineTo(84,54);x.lineTo(104,88);x.lineTo(24,88);x.closePath();x.fill();
+    for(const gx of [2,118]){R(x,gx,48,8,30,'#e3c26a');R(x,gx+1,46,6,3,'#ffd36b');R(x,gx+2,52,4,22,'#c9a24a');}   // 금빛 문기둥
+    for(let i=0;i<16;i++){const fx=(i*29)%120+4, fy=60+(i*13)%24; if(fx>28&&fx<100)continue; R(x,fx,fy,2,2,['#ff8fb1','#ffd36b','#ffffff','#c59cff'][i%4]);}
+  }else if(room==='hall'){
+    // ---- 그레이트 홀 (거대한 계단 + 조각상) ----
+    R(x,0,0,128,88,'#f6ecd6');
+    for(let i=0;i<128;i+=16){R(x,i,0,3,56,'#e3c26a');R(x,i+1,0,1,56,'#fff3c4');}                     // 금빛 기둥
+    R(x,0,0,128,4,'#c9a24a');for(let i=2;i<128;i+=6)R(x,i,4,3,2,'#e3c26a');
+    R(x,40,6,48,12,'#bfe3ff');R(x,40,6,48,1,'#e3c26a');x.fillStyle='#bfe3ff';x.beginPath();x.arc(64,6,24,Math.PI,0);x.fill();   // 위 창
+    R(x,63,0,2,18,'#e3c26a');R(x,40,12,48,1,'#e3c26a');
+    for(let k=0;k<10;k++){const w=30+k*6,y=18+k*4;R(x,64-w/2,y,w,4,k%2?'#efe4ce':'#e6d8bc');R(x,64-w/2,y+3,w,1,'#cdbb98');   // 계단
+      R(x,64-(w*.42)/2,y,w*.42,4,'#c8283c');R(x,64-(w*.42)/2,y,w*.42,1,'#e04a5a');}
+    for(const sd of [-1,1]){for(let k=0;k<10;k++){const w=30+k*6,y=18+k*4;R(x,64+sd*w/2-(sd>0?2:0),y-3,2,5,'#e3c26a');}}       // 금 난간
+    R(x,0,58,128,30,'#efe8dc');for(let j=58;j<88;j+=6)for(let i=(((j-58)/6)%2?6:0);i<128;i+=12)R(x,i,j,6,6,'#d8cbb4');   // 대리석 바닥
+    R(x,50,58,28,30,'#c8283c');R(x,52,58,24,30,'#d63a4c');
+    for(const sx of [8,104]){R(x,sx,46,16,12,'#e3c26a');R(x,sx+1,44,14,3,'#ffd36b');                                // 조각상
+      x.fillStyle='#f4f1ec';x.beginPath();x.arc(sx+8,22,4,0,7);x.fill();R(x,sx+5,26,6,14,'#f4f1ec');R(x,sx+3,28,2,8,'#f4f1ec');R(x,sx+11,24,2,9,'#f4f1ec');R(x,sx+5,40,2,6,'#ebe6df');R(x,sx+9,40,2,6,'#ebe6df');
+      R(x,sx+6,27,1,12,'#ddd6cc');}
+    for(const cx of [24,104]){R(x,cx,0,1,8,'#c9a24a');R(x,cx-6,8,13,2,'#e3c26a');for(const dx of [-6,0,6])R(x,cx+dx,10,1,3,'#fff3b0');}   // 샹들리에
+  }else if(room==='prince'||room==='nikolaus'){
+    // ---- 왕세자 방 (니콜라우스 방은 색만 다르게) ----
+    const P=room==='prince'?{w:'#cfe8fb',w2:'#b8dcf7',c:'#7fb6e0',c2:'#4f8fc8'}:{w:'#d8ecd6',w2:'#c4e0c0',c:'#6fae7a',c2:'#3f8f4f'};
+    R(x,0,0,128,56,P.w);for(let i=4;i<128;i+=20){R(x,i,8,14,36,P.w2);x.strokeStyle='#e3c26a';x.lineWidth=1;x.strokeRect(i+.5,8.5,13,35);}   // 금 액자 패널
+    R(x,0,0,128,4,'#e3c26a');for(let i=0;i<128;i+=5)R(x,i+1,4,3,2,'#c9a24a');R(x,0,54,128,2,'#c9a24a');
+    R(x,0,56,128,32,'#e8d5b0');for(let j=58;j<88;j+=5)R(x,0,j,128,1,'#d6be92');
+    R(x,92,10,24,34,'#fff7e0');R(x,94,12,20,30,'#bfe3ff');R(x,103,12,2,30,'#e3c26a');R(x,94,26,20,2,'#e3c26a');   // 창 + 커튼
+    R(x,88,8,6,40,P.c);R(x,114,8,6,40,P.c);R(x,88,6,32,4,'#e3c26a');
+    // 캐노피 거대 침대
+    R(x,0,4,58,6,'#e3c26a');R(x,0,10,58,4,P.c2);for(let i=0;i<58;i+=6){x.fillStyle=P.c2;x.beginPath();x.moveTo(i,14);x.lineTo(i+6,14);x.lineTo(i+3,18);x.closePath();x.fill();}
+    R(x,2,10,4,62,'#e3c26a');R(x,52,10,4,62,'#e3c26a');R(x,0,10,4,40,P.c);R(x,54,10,4,40,P.c);
+    R(x,8,22,42,22,'#e3c26a');R(x,10,24,38,18,'#fff3d8');x.fillStyle='#e3c26a';x.beginPath();x.arc(29,24,8,Math.PI,0);x.fill();
+    R(x,4,46,50,10,'#ffffff');R(x,8,44,16,6,'#fffaf0');R(x,32,44,16,6,'#fffaf0');
+    R(x,4,52,50,16,P.c);R(x,4,52,50,2,'#e3c26a');for(let i=8;i<52;i+=8)R(x,i,58,3,3,'#ffd36b');R(x,4,68,50,4,'#c9a24a');
+    for(const cx of [80]){R(x,cx,0,1,8,'#c9a24a');R(x,cx-8,8,17,2,'#e3c26a');for(const dx of [-8,-3,3,8])R(x,cx+dx,10,1,3,'#fff3b0');}   // 샹들리에
+    R(x,94,60,24,6,'#e3c26a');R(x,96,66,3,10,'#c9a24a');R(x,113,66,3,10,'#c9a24a');R(x,100,56,6,4,'#ffffff');   // 금 탁자
+    R(x,30,74,70,12,'#2f4f8a');R(x,32,76,66,8,'#4f8fc8');for(let i=36;i<96;i+=6)R(x,i,79,2,2,'#ffd36b');
   }else if(room==='kitchen'){
     // ---- kitchen ----
     R(x,0,0,128,54,'#fff8ee');
@@ -555,8 +619,8 @@ function bg(room,lampOn,night){const k=room+(lampOn?1:0)+(night?'n':'');return B
 function inRoom(m){return !m.room || (Array.isArray(m.room)?m.room.includes(st.room):m.room===st.room);}
 function broLocked(m){return st.menu==='root' && !!(st.bro||st.inf) && m.id==='move';}
 function healable(){return st.withLeo && st.room==='bed' && (st.poison|0)>0;}
-function avail(m){return !broLocked(m) && inRoom(m) && (m.id!=='call' || st.withLeo || st.rel>=REL_MAX) && (m.id!=='heal' || healable());}
-function placeTag(m){if(broLocked(m))return '못 나감';if(m.id==='call'&&inRoom(m))return '관계 부족';return (Array.isArray(m.room)?m.room:[m.room]).map(r=>PLACES[r]).join('·');}
+function avail(m){if(m.id==='go'&&LOCKED_PLACES.includes(m.to))return false;if(m.id==='gleo'&&st.rel<REL_MAX&&inRoom(m))return false;return !broLocked(m) && inRoom(m) && (m.id!=='call' || st.withLeo || st.rel>=REL_MAX) && (m.id!=='heal' || healable());}
+function placeTag(m){if(m.id==='go'&&LOCKED_PLACES.includes(m.to))return '잠김';if(m.id==='gleo'&&inRoom(m))return '관계 부족';if(broLocked(m))return '못 나감';if(m.id==='call'&&inRoom(m))return '관계 부족';return (Array.isArray(m.room)?m.room:[m.room]).map(r=>PLACES[r]).join('·');}
 /* ================= icons ================= */
 const ICONS={
  book:['........','.##..##.','#..##..#','#..##..#','#..##..#','#..##..#','.##..##.','...##...'],
@@ -639,6 +703,33 @@ function bdayEvent(){   // 생일: 어디에 있든 레오나르드 등장
   st.leo={who:home?'leoHome':'leo',phase:'enter',t0:performance.now(),i:0,off:70,stay:home,lines:[['생일 축하해. 루카스.','레오나르드'],['생각도 못했다.','루카스',()=>{
     const first=!st.bdayOk;st.bdayOk=true;saveGame();setTimeout(()=>{st._bdayNow=false;if(first)toast('✦ 생일 꼬깔 해금! (상점)',2000);},2600);}]]};
 }
+function drawMap(t){   // 지역 지도 (초원 위 구불구불한 길 + 메모)
+  const M=st.map, n=MAP_NODES[M.cur], cam=Math.max(0,Math.min(MAP_W-W,n.x-W/2));
+  M.cam=M.cam==null?cam:M.cam+(cam-M.cam)*.3;const ox=-Math.round(M.cam), y0=ROOM_Y;
+  R(ctx,0,y0,W,ROOM_H,'#a8dc98');
+  for(let j=0;j<ROOM_H;j+=6)for(let i=((j/6)%2?3:0);i<MAP_W;i+=9){const x=i+ox;if(x>-2&&x<W)R(ctx,x,y0+j,1,2,'#93cc84');}
+  for(const [tx,ty] of [[48,70],[108,14],[160,72],[214,66],[8,20],[250,14],[124,44]]){const x=tx+ox;if(x<-10||x>W+10)continue;
+    ctx.fillStyle='#6fb070';ctx.beginPath();ctx.arc(x,y0+ty,5,0,7);ctx.fill();ctx.fillStyle='#86c97f';ctx.beginPath();ctx.arc(x-1,y0+ty-1,3,0,7);ctx.fill();R(ctx,x,y0+ty+4,1,3,'#7a5236');}
+  ctx.fillStyle='#8fd0ec';for(let x=0;x<MAP_W;x+=2){const yy=y0+80+Math.sin(x/14)*3;if(x+ox>=0&&x+ox<W)ctx.fillRect(x+ox,yy,2,4);}   // 시냇물
+  ctx.strokeStyle='#f3dfb8';ctx.lineWidth=3;ctx.setLineDash([3,2]);ctx.beginPath();
+  MAP_NODES.forEach((p,i)=>{const x=p.x+ox,y=y0+p.y+4;if(!i)ctx.moveTo(x,y);else{const q=MAP_NODES[i-1];ctx.bezierCurveTo(q.x+ox+24,y0+q.y+26,p.x+ox-24,y0+p.y-16,x,y);}});ctx.stroke();ctx.setLineDash([]);
+  ctx.font='bold 7px sans-serif';ctx.textAlign='center';
+  MAP_NODES.forEach((p,i)=>{const x=p.x+ox,y=y0+p.y,on=!!p.id,sel=i===M.cur;
+    ctx.fillStyle='rgba(59,42,70,.35)';ctx.fillRect(x-19,y-6,40,14);
+    ctx.fillStyle=on?'#fff7e0':'#c9c4cc';ctx.fillRect(x-20,y-7,40,14);
+    ctx.fillStyle=on?'#ffb3cf':'#a9a4ad';ctx.fillRect(x-5,y-9,10,3);   // 테이프
+    ctx.strokeStyle=sel?'#ff4f8f':(on?'#8a6a4a':'#8d8892');ctx.lineWidth=sel?2:1;ctx.strokeRect(x-20,y-7,40,14);
+    ctx.fillStyle=on?'#3b2a46':'#7d7882';ctx.fillText(p.name,x,y+3);
+    if(p.id===regionNow()){ctx.fillStyle='#ff4f8f';ctx.beginPath();ctx.moveTo(x,y-10);ctx.lineTo(x-3,y-15);ctx.lineTo(x+3,y-15);ctx.closePath();ctx.fill();}});
+  R(ctx,0,y0+ROOM_H-11,W,11,'rgba(59,42,70,.75)');ctx.fillStyle='#fff';ctx.font='7px sans-serif';
+  ctx.fillText('◀ A   ● 가운데: 선택   C ▶',64,y0+ROOM_H-3);ctx.textAlign='start';
+}
+function mapMove(d){const M=st.map;M.cur=Math.max(0,Math.min(MAP_NODES.length-1,M.cur+d));beep(880,.04);}
+function mapSelect(){const n=MAP_NODES[st.map.cur];
+  if(!n.id){beep(220,.15);toast('아직 갈 수 없는 지역이야.');return;}
+  st.map=null;
+  if(n.id===regionNow()){beep(520,.06);return;}
+  beep(1320,.08);setMode('idle');st.leo=null;st.withLeo=false;st.cookStreak=0;saveGame();st.trans=.01;st.transTo=n.entry;toast('✦ '+withRo(n.name)+' 이동했다.',1600);}
 function drawBdayHat(c){   // 생일 꼬깔: 분홍 고깔 + 민트·노랑 줄무늬 + 별 + 흰 방울 테두리
   c.save();c.translate(0,6);   // 꼭대기 별이 화면 위에 잘리지 않게c.lineJoin='round';c.strokeStyle='#5a2a4a';c.lineWidth=1.8;
   c.beginPath();c.moveTo(97,6);c.lineTo(117,32);c.lineTo(77,32);c.closePath();c.fillStyle='#ff8fbf';c.fill();
@@ -900,10 +991,11 @@ function frame(now){
   else st.relMaxSince=0;
   st.hungry = DN-st.lastEat > TEST.hungryAfter;
   if(!st.hungry) st.hungerAsked=false;   // 허기 0: 이벤트 (한 번 물어봄)
-  else if(!st.hungerAsked && st.mode==='idle' && !st.menu && !st.leo && !st.script && !st.trans && !st.bro && !st.inf && !st.dead){st.hungerAsked=true;saveGame();eventModal.classList.add('show');}
+  else if(!st.hungerAsked && st.mode==='idle' && !st.menu && !st.map && !st.leo && !st.script && !st.trans && !st.bro && !st.inf && !st.dead){st.hungerAsked=true;saveGame();eventModal.classList.add('show');}
   // ---- 자동 해제 ----
   const el=t-st.modeT;
   if(['news','book','read'].includes(st.mode) && el>TEST.timed){ const byLeo=st.mode==='news'&&withLeoNow(); setMode('talk'); say(byLeo?'레오나르드가 신문을 읽어주었다.':'유익했다.'); }
+  else if(st.mode==='think' && el>TEST.timed && st.room==='garden'){ setMode('talk'); say('이런 걸 보고 자라서 그렇게 생겼나?'); }
   else if(st.mode==='think' && el>TEST.timed && isNight() && st.room==='park' && Math.random()<ROB_CHANCE){   // 밤 공원: 불량배에게 골드 전부
     const firstMask=!st.maskOk; st.gold=0;st.maskOk=true;saveGame();setMode('leo');st.script={i:0,lines:[['가진 거 다 내놔.','불량배'],['살다살다 삥을 뜯겨본다...','루카스']],after:()=>{setMode('idle');if(firstMask)toast('✦ 마스크 해금! (상점)',2000);}};say('가진 거 다 내놔.','불량배'); }
   else if(st.mode==='think' && el>TEST.timed){ setMode('talk'); if(Math.random()<.5){st.gold+=100;saveGame();say('✦ 사색하다 100골드를 주웠다! (+100G)','');} else say('좋은 사색이었다.'); }
@@ -918,8 +1010,9 @@ function frame(now){
 
   // ---- 위치 ----
   const leoHome=st.withLeo && st.room==='bed' && !st.leo;
-  const adrHere=(st.bro||st.room==='brother') && !st.leo && !st.broAway, erasHere=(st.inf||st.room==='dorm') && !st.leo;
-  const target = ((st.leo && st.leo.phase!=='exit') || leoHome || adrHere || erasHere) ? -PAIR : 0;
+  const princeLeo=st.room==='prince'&&!st.leo, adrHere=(st.bro||st.room==='brother') && !st.leo && !st.broAway, erasHere=(st.inf||st.room==='dorm') && !st.leo;
+  const target = ((st.leo && st.leo.phase!=='exit') || leoHome || adrHere || erasHere || princeLeo) ? -PAIR : 0;
+  if(st.room==='prince'&&st.rel<REL_MAX){st.rel=REL_MAX;st.relT=DN;saveGame();}   // 왕세자 방: 관계 무조건 최대
   st.lucX += (target-st.lucX)*.25; if(Math.abs(target-st.lucX)<.3) st.lucX=target;
 
   // ---- 그리기 ----
@@ -927,7 +1020,7 @@ function frame(now){
   const night=isNight(); ctx.drawImage(bg(st.room,st.mode!=='sleep',night&&(st.room==='park'||st.room==='dorm'||st.room==='bed')),0,ROOM_Y);
   if(night){ctx.fillStyle=NIGHT_DIM;ctx.fillRect(0,ROOM_Y,W,ROOM_H);}   // 밤: 배경만 어둡게 (캐릭터는 원래 밝기)
   ctx.save();ctx.beginPath();ctx.rect(0,ROOM_Y,W,ROOM_H);ctx.clip();
-  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(adrHere&&st.leoSwap) ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t);
+  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(princeLeo){ctx.imageSmoothingEnabled=true;ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH);} else if(adrHere&&st.leoSwap) ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t);
   drawLucas(t,CHX+st.lucX);
   const face=spriteKey(t).split(':')[1];
   if(face==='cry') fxTears(t);
@@ -939,6 +1032,7 @@ function frame(now){
   if(st.mode==='sleep'){ctx.fillStyle='rgba(30,26,80,.42)';ctx.fillRect(0,ROOM_Y,W,ROOM_H);fxZzz(t);}
   if(MG.active()){MG.update(t);MG.draw();}
   if(MG2.active()) MG2.draw(t);
+  if(st.map) drawMap(t);
   if(st.trans>0){
     const q=st.trans, h=Math.round(ROOM_H/2*(q<.5?q*2:(1-q)*2));
     R(ctx,0,ROOM_Y,W,h,'#3b2a46');R(ctx,0,ROOM_Y+ROOM_H-h,W,h,'#3b2a46');
@@ -980,7 +1074,7 @@ function menuItems(){
   if(st.menu==='choice') return [{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
   if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable()));   // 지금 장소에서 할 수 있는 행동만
-  if(st.menu==='move') return Object.keys(PLACES).filter(k=>k!==st.room&&k!=='brother'&&k!=='dorm').map(k=>({id:'go',to:k}));
+  if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()).map(k=>({id:'go',to:k})),{id:'map',label:'다른 지역'}];
   if(st.menu==='status') return [{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'}];
   if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:st.owned[x.key]?'보유중':(x.lock&&x.lock())?'잠김':x.price+'G'}));
   if(st.menu==='acc'){const ks=Object.keys(st.owned).filter(k=>st.owned[k]); return ks.length?ks.map(k=>({id:'wear',key:k,label:SHOP.find(x=>x.key===k).name,tag:st.wear[k]?'착용중':'해제'})):[{id:'none',label:'가진 악세사리가 없어'}];}
@@ -1002,7 +1096,7 @@ function _renderMenu(){
   menuEl.innerHTML=`<div class="ttl"><span>♥ ${title}</span><span>${PLACES[st.room]}</span></div>`+items.map((m,i)=>{
     const off=!avail(m);
     let label=m.label; if(m.id==='sleep'&&st.mode==='sleep') label='일어나기';
-    if(m.id==='go') label=PLACES[m.to]+(m.to==='park'?'으로':'(으)로')+' 가기';
+    if(m.id==='go') label=withRo(PLACES[m.to])+' 가기';
     const tag=off?placeTag(m):m.id==='call'&&st.withLeo?'함께하는 중':(m.tag||'');
     return `<div class="it ${i===st.cur?'sel':''} ${off?'off':''}"><span class="cur">▶</span>${label}${tag?`<span class="tag">${tag}</span>`:''}</div>`;
   }).join('');
@@ -1066,8 +1160,11 @@ function doAction(m){
   if(m.id==='wear'){st.wear[m.key]=!st.wear[m.key];saveGame();renderMenu();beep(st.wear[m.key]?1320:660,.06);return;}
   if(m.id==='none'){beep(330,.05);return;}
   // ---- move ----
+  if(m.id==='go'&&LOCKED_PLACES.includes(m.to)){beep(220,.15);toast('아직 들어갈 수 없어.');return;}
+  if(m.id==='map'){closeMenu();beep(990,.06);st.map={cur:Math.max(0,MAP_NODES.findIndex(n=>n.id===regionNow())),t0:performance.now()};return;}
   if(m.id==='go'){st.cookStreak=0;closeMenu();beep(1320,.08);setMode('idle');st.leo=null;if(st.withLeo){st.withLeo=false;saveGame();}st.trans=.01;st.transTo=m.to;return;}
   // ---- actions ----
+  if(m.id==='gleo'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 만날 수 있어.');return;}
   if(m.id==='call'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 부를 수 있어.');return;}
   if(!avail(m)){beep(220,.15,'square',.05);toast(placeTag(m)+'에서만 할 수 있어.');return;}
   closeMenu();beep(1320,.08);
@@ -1076,6 +1173,16 @@ function doAction(m){
   if(m.id==='leo'){st.leo=null;setMode('leo');leoStart();return;}
   if(m.id==='eli'){st.leo=null;setMode('leo');eliStart();return;}
   if(m.id==='call'){st.leo=null;if(st.withLeo){callLeo();return;}setMode('leo');callLeo();return;}
+  if(m.id==='gleo'){   // 전정: 레오나르드와 대화
+    const P=[['좋은 데 산다?','언제든 환영이야.'],['크다...','여기서 살아.'],['예고하고 등장해.','하하.']][Math.random()*3|0];
+    st.leo=null;setMode('leo');st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[P[0],'루카스'],[P[1],'레오나르드']],i:0,off:70};return;}
+  if(m.id==='wait'){   // 그레이트 홀: 50% 레오나르드 등장
+    if(Math.random()<.5){st.leo=null;setMode('leo');st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[['깜짝이야.','루카스'],['내 방으로 와.','레오나르드']],i:0,off:70};}
+    else{setMode('talk');say('…아무도 오지 않았다.','');}
+    return;}
+  if(m.id==='pbook'){setMode('talk');say('레오나르드가 읽어줬다.');return;}
+  if(m.id==='pnews'){setMode('talk');say('레오나르드가 읽어줬다. 뭔가 빼고 얘기해주는 듯 한데...');return;}
+  if(m.id==='ptalk'){setMode('talk');say('✦ 레오나르드와 유익한 시간을 보냈다.','');return;}
   if(m.id==='sync'){   // 이심전심 (잠입마다 한 번)
     if(st.inf&&st.inf.tried){beep(220,.15);toast('이심전심은 한 번만 할 수 있어.');return;}
     if(st.inf){st.inf.tried=true;saveGame();} hideDlg();setMode('mg2');MG2.start(syncEnd);return;}
@@ -1212,6 +1319,7 @@ function escapeEnd(ok){
 const ROOT_IDX={act:0,status:1,move:2};
 function btnA(){
   if(st.dead) return;
+  if(st.map){mapMove(-1);return;}
   if(st.mode==='mg'){MG.press('L');return;}
   if(st.mode==='mg2'){MG2.pick('L');return;}
   if(st.menu==='choice'){doAction({id:'no'});return;}
@@ -1227,6 +1335,7 @@ function btnA(){
 }
 function btnB(){
   if(st.dead) return;
+  if(st.map){mapMove(1);return;}
   if(st.mode==='mg'){MG.press('R');return;}
   if(st.mode==='mg2'){MG2.pick('R');return;}
   if(st.menu){st.cur=(st.cur+1)%menuItems().length;renderMenu();beep(880,.04);return;}
@@ -1234,6 +1343,7 @@ function btnB(){
 }
 function btnC(){
   if(st.dead) return;
+  if(st.map){mapSelect();return;}
   if(st.mode==='mg'||st.mode==='mg2'||st.broAway) return;
   if(!st.menu){st.menu='root';st.cur=0;renderMenu();beep(990,.06);return;}
   doAction(menuItems()[st.cur]);
@@ -1504,6 +1614,7 @@ function loadGame(){
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
+    if(LOCKED_PLACES.includes(st.room)) st.room='garden';
     st.poison=st.poison===true?1:(st.poison|0);
     if(!SPR.outfits[st.outfit]) st.outfit='basic';
     customBgURL=localStorage.getItem(SAVE_KEY+':bg');
@@ -1561,7 +1672,7 @@ document.getElementById('warnClose').onclick=()=>warnModal.classList.remove('sho
 document.getElementById('deadReset').onclick=()=>bkfile.click();   // 백업 불러오면 그 상태로 다시
 document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 상황을 모두 지우고 처음부터 할까?'))return;restoring=true;try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem(SAVE_KEY+':bg');}catch(e){}location.reload();};
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
-const UPDATE_NOTE={id:'n2',text:'생일 이벤트 추가\n수면 이벤트 추가'};
+const UPDATE_NOTE={id:'n3',text:'지역 해금'};
 document.getElementById('noteOk').onclick=()=>{document.getElementById('noteModal').classList.remove('show');try{localStorage.setItem(SAVE_KEY+':note',UPDATE_NOTE.id);}catch(e){}};
 loadGame(); if(st.dead) deadModal.classList.add('show');
 else{let seen=null;try{seen=localStorage.getItem(SAVE_KEY+':note');}catch(e){} if(seen!==UPDATE_NOTE.id){document.getElementById('noteText').textContent=UPDATE_NOTE.text;document.getElementById('noteModal').classList.add('show');}} if(!SHELL[st.theme]) st.theme='1'; applyBg(); renderShell(); fitEgg(); applyOutfit();
