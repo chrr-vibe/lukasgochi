@@ -59,7 +59,7 @@ body.pixel-bg{image-rendering:pixelated}
   mix-blend-mode:overlay}
 
 /* menu & dialog (in-screen UI) */
-#menu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:196px;
+#menu{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:196px;max-height:168px;overflow-y:auto;scrollbar-width:none;
   background:var(--cream);border:3px solid var(--ink);border-radius:4px;
   box-shadow:3px 3px 0 rgba(59,42,70,.55),inset 0 0 0 2px #ffd6e8;padding:6px 6px 7px;
   font-size:12px;line-height:16px;display:none;image-rendering:pixelated}
@@ -112,6 +112,9 @@ body.pixel-bg{image-rendering:pixelated}
 .bkhint{font-size:11px;line-height:16px;color:#8a7395;margin-bottom:4px}
 .mcol{display:flex;flex-direction:column;gap:8px;align-items:stretch;margin-top:10px}
 .mcol .addbg{margin-top:0;font-size:12px;padding:8px 14px}
+#menu::-webkit-scrollbar{display:none}
+#menu .ttl{position:sticky;top:-6px;z-index:1}
+.copy{margin-top:22px;font-size:11px;color:#a98fb5;letter-spacing:1px;text-align:center}
 .bgopt span{position:absolute;left:0;right:0;bottom:4px;font-size:10px;background:rgba(255,255,255,.85);margin:0 6px;border-radius:6px;color:var(--ink)}
 
 html,body{height:auto;min-height:100%}
@@ -170,6 +173,7 @@ html,body{height:auto;min-height:100%}
       <button data-theme="5">5</button>
     </div>
   </div>
+  <div class="copy">© 나나곰 쿠키</div>
   <div class="modal" id="bgModal"><div class="mbox"><div class="mt">배경 바꾸기</div><div class="bggrid" id="bgGrid"></div></div></div>
   <div class="modal" id="bkModal"><div class="mbox"><div class="mt">💾 백업 · 복원</div>
     <div class="bkhint">소지액, 악세사리, 옷, 테마, 배경, 상태를<br>파일 하나로 저장하고 다시 불러올 수 있어.</div>
@@ -484,18 +488,13 @@ function drawEar(c,bx,by,rot,side,twitch){
       const x=v*v*x0+2*v*u*cx+u*u*x1, y=v*v*y0+2*v*u*cy+u*u*y1;
       const dx=2*v*(cx-x0)+2*u*(x1-cx), dy=2*v*(cy-y0)+2*u*(y1-cy), l=Math.hypot(dx,dy)||1, o=(i>0&&i<N)?fur(i)*out:0;
       pts.push([x-dy/l*o, y+dx/l*o]);}};
-  edge(-15,6,-17,-16,-6,-31,1);       // 바깥쪽
-  edge(-6,-31,8,-18,15,6,1);          // 안쪽
+  edge(-15,6,-17,-11,-6,-22,1);       // 바깥쪽
+  edge(-6,-22,8,-12,15,6,1);          // 안쪽
   c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();
-  c.fillStyle='#211c29';c.fill();c.lineJoin='round';c.lineWidth=1.4;c.strokeStyle='#0d0a12';c.stroke();
-  c.beginPath();c.moveTo(-9,4);c.quadraticCurveTo(-10,-12,-5,-22);c.quadraticCurveTo(3,-12,8,4);c.closePath();
-  c.fillStyle='#5a4660';c.fill();
-  c.beginPath();c.moveTo(-6,4);c.quadraticCurveTo(-6,-8,-4,-14);c.quadraticCurveTo(1,-7,4,4);c.closePath();
-  c.fillStyle='#b98aa4';c.fill();
-  c.lineCap='round';c.strokeStyle='#a99db4';c.lineWidth=1.3;
-  for(const [x0,y0,x1,y1] of [[-7,5,-9,-6],[-3,5,-3,-9],[1,5,3,-6],[5,5,8,-2]]){c.beginPath();c.moveTo(x0,y0);c.quadraticCurveTo((x0+x1)/2-1,(y0+y1)/2,x1,y1);c.stroke();}
-  c.strokeStyle='#3d3448';c.lineWidth=1.2;
-  for(const [x0,y0,x1,y1] of [[-13,0,-14,-12],[-10,-18,-7,-26],[11,-2,9,-12]]){c.beginPath();c.moveTo(x0,y0);c.lineTo(x1,y1);c.stroke();}
+  c.lineJoin='round';c.lineWidth=3.2;c.strokeStyle='#000000';c.stroke();
+  c.fillStyle='#1c1820';c.fill();
+  c.beginPath();c.moveTo(-6,5);c.quadraticCurveTo(-6,-5,-4,-10);c.quadraticCurveTo(1,-4,4,5);c.closePath();   // 안쪽 살 (피부색)
+  c.fillStyle='#fbefe8';c.fill();
   c.restore();
 }
 function drawEars(c,t){
@@ -715,6 +714,14 @@ function menuItems(){
   return [];
 }
 function renderMenu(){
+  _renderMenu();
+  if(!st.menu) return;
+  const sel=menuEl.querySelector('.it.sel'), ttl=menuEl.querySelector('.ttl');   // 선택 항목이 보이도록 스크롤
+  if(!sel) return;
+  const top=sel.offsetTop-(ttl?ttl.offsetHeight:0)-6, bot=sel.offsetTop+sel.offsetHeight+6-menuEl.clientHeight;
+  if(menuEl.scrollTop>top) menuEl.scrollTop=Math.max(0,top); else if(menuEl.scrollTop<bot) menuEl.scrollTop=bot;
+}
+function _renderMenu(){
   if(!st.menu){menuEl.style.display='none';return;}
   if(st.menu==='status'){menuEl.innerHTML=statusHTML()+menuItems().map((m,i)=>`<div class="it ${i===st.cur?'sel':''}"><span class="cur">▶</span>${m.label}</div>`).join('');menuEl.style.display='block';return;}
   const items=menuItems();
