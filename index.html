@@ -672,7 +672,11 @@ function fxThink(t){
 }
 /* ================= leonard sequence ================= */
 function leoStart(){
-  const pair=isDrunk()?LEO_DRUNK:LEO[Math.random()*LEO.length|0];   // 술 취했으면 무조건 이 대사
+  if(isDrunk()){   // 술 취한 채 만나면: 고정 대사, 관계 -1, 대신 술은 바로 깸
+    st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[LEO_DRUNK[0],'레오나르드'],[LEO_DRUNK[1],'루카스',()=>{st.drunkUntil=0;saveGame();}]],i:0,off:70};
+    st.rel=Math.max(0,st.rel-1);saveGame();return;
+  }
+  const pair=LEO[Math.random()*LEO.length|0];
   const luc=typeof pair[1]==='string'?pair[1]:pair[1][st.room];
   st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[pair[0],'레오나르드'],[luc,'루카스']],i:0,off:70};
   relUp();
