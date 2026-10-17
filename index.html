@@ -234,6 +234,7 @@ const ACTS=[
   {id:'leo',  label:'레오나르드 만나기',room:['library','park']},
   {id:'eli',  label:'엘리아스 만나기',  room:'park'},
   {id:'call', label:'레오나르드 부르기',room:'bed'},
+  {id:'heal', label:'치료 받기',      room:'bed'},   // 레오나르드와 함께 있고 독약 상태일 때만
   {id:'think',label:'사색하기',       room:'park'},
   {id:'cook', label:'요리하기',       room:'kitchen'},
   {id:'taste',label:'시식하기',       room:'kitchen'},
@@ -534,7 +535,8 @@ function bg(room,lampOn,night){const k=room+(lampOn?1:0)+(night?'n':'');return B
 
 function inRoom(m){return !m.room || (Array.isArray(m.room)?m.room.includes(st.room):m.room===st.room);}
 function broLocked(m){return !!(st.bro||st.inf) && st.menu==='root' && (m.id==='act'||m.id==='move');}
-function avail(m){return !broLocked(m) && inRoom(m) && (m.id!=='call' || st.withLeo || st.rel>=REL_MAX);}
+function healable(){return st.withLeo && st.room==='bed' && (st.poison|0)>0;}
+function avail(m){return !broLocked(m) && inRoom(m) && (m.id!=='call' || st.withLeo || st.rel>=REL_MAX) && (m.id!=='heal' || healable());}
 function placeTag(m){if(broLocked(m))return '대화만';if(m.id==='call'&&inRoom(m))return '관계 부족';return (Array.isArray(m.room)?m.room:[m.room]).map(r=>PLACES[r]).join('·');}
 /* ================= icons ================= */
 const ICONS={
@@ -841,7 +843,7 @@ function frame(now){
   ctx.imageSmoothingEnabled=false;
   const night=isNight(); ctx.drawImage(bg(st.room,st.mode!=='sleep',night&&(st.room==='park'||st.room==='dorm')),0,ROOM_Y);
   ctx.save();ctx.beginPath();ctx.rect(0,ROOM_Y,W,ROOM_H);ctx.clip();
-  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t);
+  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(adrHere&&st.leoSwap) ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t);
   drawLucas(t,CHX+st.lucX);
   const face=spriteKey(t).split(':')[1];
   if(face==='cry') fxTears(t);
@@ -891,7 +893,7 @@ function statusHTML(){
 function menuItems(){
   if(st.menu==='choice') return [{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
-  if(st.menu==='act')  return ACTS.filter(inRoom);   // 지금 장소에서 할 수 있는 행동만
+  if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable()));   // 지금 장소에서 할 수 있는 행동만
   if(st.menu==='move') return Object.keys(PLACES).filter(k=>k!==st.room&&k!=='brother'&&k!=='dorm').map(k=>({id:'go',to:k}));
   if(st.menu==='status') return [{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'}];
   if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:st.owned[x.key]?'보유중':(x.lock&&x.lock())?'잠김':x.price+'G'}));
@@ -951,7 +953,12 @@ function doAction(m){
     if(m.id==='move') return openSub('move');
     if(m.id==='status') return openSub('status');
     if(m.id==='talk'&&st.bro&&Math.random()<POISON_CHANCE){closeMenu();beep(1320,.08);setMode('leo');   // 독약: 타이머 상관없이 방으로
-      st.script={i:0,lines:[['루카. 이걸 먹어.','아드리안'],['형이 준 걸 그대로 삼켰다......','루카스']],after:()=>broEnd(true)};say(...st.script.lines[0]);return;}
+      st.script={i:0,lines:[['루카. 이걸 먹어.','아드리안'],['형이 준 걸 그대로 삼켰다......','루카스']],after:()=>{
+        if((st.poison|0)>=POISON_WARN){   // 경고 후 또 먹으면: 형이 사라지고 레오나르드가 그 자리에
+          st.poison=(st.poison|0)+1;st.leoSwap=true;saveGame();
+          st.script={i:0,lines:[['돌려.','레오나르드']],after:()=>gameOver()};say('돌려.','레오나르드');
+        } else broEnd(true);
+      }};say(...st.script.lines[0]);return;}
     if(m.id==='talk'&&st.inf){closeMenu();beep(1320,.08);setMode('leo');   // 잠입 중: 제롬 ↔ 에라스미오스
       const [a,b]=INF_TALK[Math.random()*INF_TALK.length|0];st.script={i:0,lines:[[a,'제롬'],[b,'에라스미오스']],after:()=>setMode('idle')};say(a,'제롬');return;}
     if(m.id==='talk'&&st.bro){closeMenu();beep(1320,.08);setMode('talk');say('루카. 누구와 말하는 거야?','아드리안');return;}   // 루카스는 말을 못 함
@@ -979,6 +986,8 @@ function doAction(m){
   if(m.id==='leo'){st.leo=null;setMode('leo');leoStart();return;}
   if(m.id==='eli'){st.leo=null;setMode('leo');eliStart();return;}
   if(m.id==='call'){st.leo=null;if(st.withLeo){callLeo();return;}setMode('leo');callLeo();return;}
+  if(m.id==='heal'){setMode('leo');   // 독약 스택 전부 해소
+    st.script={i:0,lines:[['이제 잠 좀 자.','레오나르드'],['......','루카스']],after:()=>{st.poison=0;saveGame();setMode('idle');toast('✦ 독이 모두 풀렸다.',1600);}};say(...st.script.lines[0]);return;}
   if(m.id==='pick'&&Math.random()<BRO_CHANCE){st.leo=null;setMode('leo');adrStart();return;}
   if(m.id==='pick'){const r=PICK[Math.random()*PICK.length|0];st.pickFace=r[1];st.gold+=r[2];saveGame();setMode('pick');say('✦ '+r[0],'');return;}
   setMode(m.id);
