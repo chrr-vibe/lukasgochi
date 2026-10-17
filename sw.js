@@ -1,6 +1,6 @@
 /* LUCASGOTCHI service worker
    - 업데이트를 올릴 때마다 아래 VERSION 숫자를 올려주세요. */
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE = 'lucasgotchi-' + VERSION;
 const CORE = [
   './',
