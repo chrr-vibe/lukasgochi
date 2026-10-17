@@ -799,7 +799,8 @@ function callLeo(){   // 레오나르드 부르기 (다시 누르면 돌려보�
 }
 function adrStart(){   // 형 아드리안 등장 → 형의 방으로 (20분)
   st.leo={who:'adr',phase:'enter',t0:performance.now(),lines:[['루카. 내 동생.','아드리안'],['........','루카스']],i:0,off:70,
-    after:()=>{st.bro={until:Date.now()+BRO_MS};if(st.withLeo)st.withLeo=false;saveGame();setMode('idle');st.trans=.01;st.transTo='brother';}};
+    after:()=>{st.bro={until:Date.now()+BRO_MS};st.letter=0;if(st.withLeo)st.withLeo=false;saveGame();   // 형의 방에 갈 때마다 편지 조각 새로 모으기
+      setMode('idle');st.trans=.01;st.transTo='brother';}};
 }
 function infStart(){st.leo=null;closeMenu();hideDlg();st.inf={at:Date.now()};st.withLeo=false;st.cookStreak=0;saveGame();setMode('idle');st.trans=.01;st.transTo='dorm';}
 function infEnd(){st.inf=null;st.script=null;closeMenu();setMode('idle');st.leo=null;st.trans=.01;st.transTo='bed';saveGame();toast('잠입이 끝났다. 내 방으로 돌아왔다.',2200);}
