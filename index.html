@@ -113,6 +113,7 @@ body.pixel-bg{image-rendering:pixelated}
 .mcol .addbg{margin-top:0;font-size:12px;padding:8px 14px}
 #menu::-webkit-scrollbar{display:none}
 #clock{position:absolute;top:27px;left:5px;font-size:11px;line-height:13px;padding:1px 5px;background:var(--cream);color:#6b4a7a;border:2px solid var(--ink);border-radius:3px;box-shadow:2px 2px 0 rgba(59,42,70,.45);z-index:2}
+#noteText{white-space:pre-line}
 #broTimer{text-align:center;position:absolute;top:27px;right:5px;display:none;font-size:11px;line-height:13px;padding:1px 5px;background:var(--cream);color:#6b4a7a;border:2px solid var(--ink);border-radius:3px;box-shadow:2px 2px 0 rgba(59,42,70,.45);z-index:2}
 #menu .ttl{position:sticky;top:-6px;z-index:1}
 .copy{margin-top:22px;font-size:11px;color:#a98fb5;letter-spacing:1px;text-align:center}
@@ -284,6 +285,8 @@ const DRUNK_MS=2*60*1000;
 function gameMin(){const d=new Date();return ((d.getMinutes()*60+d.getSeconds())*1000+d.getMilliseconds())/3600000*1440;}
 function gameHour(){return Math.floor(gameMin()/60);}
 function isNight(){const h=gameHour();return h>=19||h<6;}       // 오후 7시 ~ 오전 6시
+function bdayWindow(){const m=gameMin();return m>=10*60+18&&m<10*60+21;}   // 오전 10:18~10:20: 쓰다듬기 18번 → 생일 이벤트
+const BDAY_PETS=18, EYEMASK_SLEEP=5*60*60*1000;   // 수면 안대: 현실 5시간 이상 재우기
 function infWindow(){return gameHour()===15;}
 function infActive(){const h=gameHour();return h>=15&&h<16+((st.inf&&st.inf.ext)|0);}   // 이심전심 성공 시 1시간씩 연장                    // 오후 3~4시: 도서관에서 레오나르드 → 잠입
 function chefWindow(){return gameHour()===18;}                   // 오후 6~7시: 주방에서 요리 연속 10번 → 요리사 모자
@@ -297,7 +300,7 @@ const TEST={sickAfter:60*60*1000, cryAfter:10*60*1000, hungryAfter:3*60*60*1000,
 
 const now0=performance.now(), D0=Date.now();
 const st={room:'bed',outfit:'basic',mode:'idle',modeT:now0,menu:null,cur:0,trans:0,transTo:null,dlg:null,
-          sick:false,cry:false,hungry:false,lastSleep:D0,lastPet:D0,lastEat:D0,gold:0,owned:{},wear:{},lastCook:null,drunkUntil:0,bro:null,poison:0,script:null,inf:null,cookStreak:0,chefOk:false,dead:false,cookOk:0,glovesOk:false,bunnyOk:false,relMaxSince:0,artifactOk:false,maskOk:false,berryOk:false,hungerAsked:false,letter:0,letterDone:0,rel:0,relT:D0,withLeo:false,theme:'1',bg:{type:'preset',i:0},lucX:0,leo:null,pickFace:'idle'};
+          sick:false,cry:false,hungry:false,lastSleep:D0,lastPet:D0,lastEat:D0,gold:0,owned:{},wear:{},lastCook:null,drunkUntil:0,bro:null,poison:0,script:null,inf:null,cookStreak:0,chefOk:false,dead:false,cookOk:0,glovesOk:false,bunnyOk:false,relMaxSince:0,artifactOk:false,maskOk:false,berryOk:false,hungerAsked:false,letter:0,letterDone:0,bdayOk:false,eyemaskOk:false,sleepStart:0,_bdayPets:0,rel:0,relT:D0,withLeo:false,theme:'1',bg:{type:'preset',i:0},lucX:0,leo:null,pickFace:'idle'};
 
 /* ================= sound ================= */
 let AC=null;
@@ -630,6 +633,32 @@ function drawEars(c,t){
 }
 function isDrunk(){return Date.now()<st.drunkUntil;}
 function getDrunk(){st.drunkUntil=Date.now()+DRUNK_MS;saveGame();}   // 술 취하기: 옷은 그대로, 얼굴만 2분간 바뀜
+function bdayEvent(){   // 생일: 어디에 있든 레오나르드 등장
+  st._bdayFired=true;st._bdayNow=true;st.cry=false;st.lastPet=Date.now();closeMenu();hideDlg();setMode('leo');
+  const home=st.withLeo&&st.room==='bed';
+  st.leo={who:home?'leoHome':'leo',phase:'enter',t0:performance.now(),i:0,off:70,stay:home,lines:[['생일 축하해. 루카스.','레오나르드'],['생각도 못했다.','루카스',()=>{
+    const first=!st.bdayOk;st.bdayOk=true;saveGame();setTimeout(()=>{st._bdayNow=false;if(first)toast('✦ 생일 꼬깔 해금! (상점)',2000);},2600);}]]};
+}
+function drawBdayHat(c){   // 생일 꼬깔: 분홍 고깔 + 민트·노랑 줄무늬 + 별 + 흰 방울 테두리
+  c.save();c.translate(0,6);   // 꼭대기 별이 화면 위에 잘리지 않게c.lineJoin='round';c.strokeStyle='#5a2a4a';c.lineWidth=1.8;
+  c.beginPath();c.moveTo(97,6);c.lineTo(117,32);c.lineTo(77,32);c.closePath();c.fillStyle='#ff8fbf';c.fill();
+  c.save();c.clip();c.lineWidth=3.2;c.strokeStyle='#7fe0c3';c.beginPath();c.moveTo(80,22);c.lineTo(114,14);c.stroke();
+  c.strokeStyle='#ffd36b';c.beginPath();c.moveTo(80,30);c.lineTo(116,22);c.stroke();
+  c.strokeStyle='rgba(255,255,255,.6)';c.lineWidth=1.4;c.beginPath();c.moveTo(94,12);c.lineTo(88,28);c.stroke();c.restore();
+  c.strokeStyle='#5a2a4a';c.lineWidth=1.8;c.beginPath();c.moveTo(97,6);c.lineTo(117,32);c.lineTo(77,32);c.closePath();c.stroke();
+  c.fillStyle='#ffe58a';c.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?2.3:5.2;c.lineTo(97+Math.cos(a)*rr,5.5+Math.sin(a)*rr);}c.closePath();c.fill();c.stroke();
+  for(let x=78;x<=116;x+=4.75){c.fillStyle='#ffffff';c.beginPath();c.arc(x,32.5,2.4,0,7);c.fill();c.stroke();}
+  c.restore();
+}
+function drawEyeMask(c){   // 수면 안대: 이마 위 하늘색 안대 + 양옆 밴드
+  c.save();c.lineJoin='round';c.strokeStyle='#2f3340';c.lineWidth=1.6;
+  c.fillStyle='#8cc7ee';c.fillRect(54,60,10,8);c.strokeRect(54,60,10,8);c.fillRect(130,60,10,8);c.strokeRect(130,60,10,8);
+  c.fillStyle='#a6d5f7';c.beginPath();c.moveTo(66,52);c.bezierCurveTo(80,46,114,46,128,52);c.bezierCurveTo(134,56,133,70,126,72);
+  c.bezierCurveTo(112,68,82,68,68,72);c.bezierCurveTo(61,70,60,56,66,52);c.closePath();c.fill();c.stroke();
+  c.strokeStyle='#5a6070';c.lineWidth=1;c.beginPath();c.moveTo(70,55);c.bezierCurveTo(82,51,112,51,124,55);c.bezierCurveTo(128,58,128,66,124,68);
+  c.bezierCurveTo(110,65,84,65,70,68);c.bezierCurveTo(66,66,66,58,70,55);c.closePath();c.stroke();
+  c.restore();
+}
 function drawBerry(c){   // 딸기 장식: 머리 위 가운데, 거꾸로 (꼭지가 아래, 끝이 위)
   c.save();c.lineJoin='round';c.lineWidth=1.8;c.strokeStyle='#5a1f2b';
   c.fillStyle='#ff4d6d';c.beginPath();c.moveTo(97,8);c.bezierCurveTo(110,12,112,24,104,30);c.lineTo(90,30);c.bezierCurveTo(82,24,84,12,97,8);c.closePath();c.fill();c.stroke();
@@ -691,6 +720,8 @@ function drawLucas(t,x){
   swayBang(octx, key==='heart'?imgs.heartBang:key==='broLuc'?imgs.broHeadBang:key==='jerome'?imgs.jeromeBang:bang, bangAmp(t,st.mode==='sleep'));
   if(!disguise && st.wear.artifact) drawArtifact(octx);
   if(!disguise && st.wear.berry) drawBerry(octx);
+  if(!disguise && st.wear.eyemask) drawEyeMask(octx);
+  if(!disguise && (st.wear.bday||st._bdayNow)) drawBdayHat(octx);   // 생일 이벤트 중엔 잠깐 씌움
   if(!disguise && st.wear.chef) drawChefHat(octx);
   if(!heart && ['book','news','read'].includes(st.mode)) octx.drawImage(imgs.glasses,0,0);
   ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
@@ -858,6 +889,9 @@ function frame(now){
   const hud=(st.bro?'⏳ '+fmt(st.bro.until-DN):st.inf?'🕵 잠입 중':'')+'\n☠ 독약'.repeat(st.poison|0);   // 독약 스택은 세로로 쌓임
   broTimer.style.display=hud?'block':'none'; if(broTimer._t!==hud){broTimer._t=hud;broTimer.innerHTML=hud.replace(/^\n/,'').split('\n').join('<br>');}
   const gray=(st.poison|0)>=POISON_WARN||st.dead; if(eggHolder._g!==gray){eggHolder._g=gray;eggHolder.style.filter=gray?'grayscale(1)':'';}
+  if(!bdayWindow()){st._bdayPets=0;st._bdayFired=false;}
+  if(st.mode==='sleep'){ if(!st.sleepStart) st.sleepStart=DN; else if(!st.eyemaskOk && DN-st.sleepStart>=EYEMASK_SLEEP){st.eyemaskOk=true;saveGame();toast('✦ 수면 안대 해금! (상점)',2200);} }
+  else if(st.sleepStart) st.sleepStart=0;
   if(st.inf && !infActive() && !st.trans && !MG2.active()) infEnd();
   if(st.cookStreak && !(chefWindow()&&st.room==='kitchen')) st.cookStreak=0;
   runScript(t);
@@ -994,7 +1028,7 @@ function setMode(m){
   if(st.menu) renderMenu();
 }
 function closeMenu(){st.menu=null;renderMenu();}
-const SHOP=[{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk},{key:'artifact',name:'아티팩트',price:0,lock:()=>!st.artifactOk},{key:'mask',name:'마스크',price:0,lock:()=>!st.maskOk},{key:'berry',name:'딸기 장식',price:0,lock:()=>!st.berryOk}];
+const SHOP=[{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk},{key:'artifact',name:'아티팩트',price:0,lock:()=>!st.artifactOk},{key:'mask',name:'마스크',price:0,lock:()=>!st.maskOk},{key:'berry',name:'딸기 장식',price:0,lock:()=>!st.berryOk},{key:'bday',name:'생일 꼬깔',price:0,lock:()=>!st.bdayOk},{key:'eyemask',name:'수면 안대',price:0,lock:()=>!st.eyemaskOk}];
 function openSub(name){st.menu=name;st.cur=0;renderMenu();beep(990,.05);}
 function doAction(m){
   if(st.menu==='choice'){ if(m.id==='yes'){beep(1320,.08);infStart();} else {closeMenu();beep(520,.06);if(st.leo){st.leo.phase='exit';st.leo.t0=performance.now();}} return; }
@@ -1014,6 +1048,10 @@ function doAction(m){
     if(m.id==='talk'&&st.inf){closeMenu();beep(1320,.08);setMode('leo');   // 잠입 중: 제롬 ↔ 에라스미오스
       const [a,b]=INF_TALK[Math.random()*INF_TALK.length|0];st.script={i:0,lines:[[a,'제롬'],[b,'에라스미오스']],after:()=>setMode('idle')};say(a,'제롬');return;}
     if(m.id==='talk'&&st.bro){closeMenu();beep(1320,.08);setMode('talk');say('루카. 누구와 말하는 거야?','아드리안');return;}   // 루카스는 말을 못 함
+    if(m.id==='talk'&&st.withLeo&&st.room==='bed'&&(st.wear.bday||st.wear.eyemask)){closeMenu();beep(1320,.08);setMode('leo');   // 방에 부른 레오나르드: 악세사리별 대사
+      const opts=[];if(st.wear.bday)opts.push([['오늘은 내가 네게 다 맞출게.','레오나르드']]);
+      if(st.wear.eyemask)opts.push([['굉장히 만족스러운 얼굴을 한다.','레오나르드'],['설마 내가 많이 자버린 걸 아는 건가?','루카스']]);
+      st.script={i:0,lines:opts[Math.random()*opts.length|0],after:()=>setMode('idle')};say(...st.script.lines[0]);return;}
     if(m.id==='talk'){closeMenu();beep(1320,.08);setMode('talk');say(LINES[Math.random()*LINES.length|0]);return;}
   }
   // ---- status / shop / accessory ----
@@ -1183,6 +1221,7 @@ function btnA(){
   if(st.menu){closeMenu();beep(520,.06);return;}
   if(st.mode!=='idle'&&st.mode!=='pet'){setMode('idle');beep(520,.06);return;}     // 기능 해제
   if(st.bro||st.inf){beep(220,.1);return;}                                                       // 형의 방: 대화만
+  if(bdayWindow() && !st._bdayFired && ++st._bdayPets>=BDAY_PETS){bdayEvent();return;}
   st.cry=false; st.lastPet=Date.now(); saveGame();                                       // 쓰다듬기
   setMode('pet');beep(1500,.05,'triangle',.08);setTimeout(()=>beep(1900,.07,'triangle',.08),70);
 }
@@ -1455,13 +1494,13 @@ function saveGame(){
   if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
-      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,rel:st.rel,relT:st.relT,withLeo:st.withLeo,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
+      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,eyemaskOk:st.eyemaskOk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,withLeo:st.withLeo,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
   }catch(e){}
 }
 function loadGame(){
   try{
     const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return;
-    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','rel','relT','withLeo']) if(d[k]!==undefined) st[k]=d[k];
+    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','eyemaskOk','sleepStart','rel','relT','withLeo']) if(d[k]!==undefined) st[k]=d[k];
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
@@ -1522,7 +1561,7 @@ document.getElementById('warnClose').onclick=()=>warnModal.classList.remove('sho
 document.getElementById('deadReset').onclick=()=>bkfile.click();   // 백업 불러오면 그 상태로 다시
 document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 상황을 모두 지우고 처음부터 할까?'))return;restoring=true;try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem(SAVE_KEY+':bg');}catch(e){}location.reload();};
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
-const UPDATE_NOTE={id:'n1',text:'잠입 미니 게임 추가'};
+const UPDATE_NOTE={id:'n2',text:'생일 이벤트 추가\n수면 이벤트 추가'};
 document.getElementById('noteOk').onclick=()=>{document.getElementById('noteModal').classList.remove('show');try{localStorage.setItem(SAVE_KEY+':note',UPDATE_NOTE.id);}catch(e){}};
 loadGame(); if(st.dead) deadModal.classList.add('show');
 else{let seen=null;try{seen=localStorage.getItem(SAVE_KEY+':note');}catch(e){} if(seen!==UPDATE_NOTE.id){document.getElementById('noteText').textContent=UPDATE_NOTE.text;document.getElementById('noteModal').classList.add('show');}} if(!SHELL[st.theme]) st.theme='1'; applyBg(); renderShell(); fitEgg(); applyOutfit();
