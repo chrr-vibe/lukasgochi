@@ -1,6 +1,6 @@
 /* LUCASGOTCHI service worker
    - 업데이트를 올릴 때마다 아래 VERSION 숫자를 올려주세요. */
-const VERSION = 'v10';
+const VERSION = 'v11';
 const CACHE = 'lucasgotchi-' + VERSION;
 const CORE = [
   './',
@@ -33,9 +33,9 @@ self.addEventListener('fetch', e => {
   // 페이지: 네트워크 우선 (새 버전 바로 반영), 오프라인이면 캐시
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req).then(res => {
+      fetch(req.url, { cache: 'no-cache' }).then(res => {   // 브라우저 HTTP 캐시도 건너뛰고 서버에 확인
         const copy = res.clone();
-        caches.open(CACHE).then(c => c.put('./index.html', copy));
+        if (res.ok) caches.open(CACHE).then(c => c.put('./index.html', copy));
         return res;
       }).catch(() => caches.match('./index.html'))
     );
@@ -45,7 +45,7 @@ self.addEventListener('fetch', e => {
   // 매니페스트·아이콘: 네트워크 우선 (설치 정보가 옛 캐시에 묶이지 않도록), 오프라인이면 캐시
   if (url.origin === location.origin && /\.(webmanifest|png)$/.test(url.pathname)) {
     e.respondWith(
-      fetch(req).then(res => {
+      fetch(req, { cache: 'no-cache' }).then(res => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
         return res;
       }).catch(() => caches.match(req))
