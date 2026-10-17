@@ -108,6 +108,10 @@ body.pixel-bg{image-rendering:pixelated}
 .bggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .bgopt{aspect-ratio:9/14;border:3px solid var(--ink);border-radius:10px;background-size:cover;background-position:center;image-rendering:pixelated;cursor:pointer;position:relative;padding:0;font-family:var(--font)}
 .bgopt.on{outline:3px solid #ff8fbf;outline-offset:2px}
+.egg-scale .btn.dial{width:48px;height:48px}
+.bkhint{font-size:11px;line-height:16px;color:#8a7395;margin-bottom:4px}
+.mcol{display:flex;flex-direction:column;gap:8px;align-items:stretch;margin-top:10px}
+.mcol .addbg{margin-top:0;font-size:12px;padding:8px 14px}
 .bgopt span{position:absolute;left:0;right:0;bottom:4px;font-size:10px;background:rgba(255,255,255,.85);margin:0 6px;border-radius:6px;color:var(--ink)}
 
 html,body{height:auto;min-height:100%}
@@ -139,12 +143,14 @@ html,body{height:auto;min-height:100%}
       <button class="btn" id="bA" style="left:73px;top:376px"></button>
       <button class="btn" id="bB" style="left:155px;top:388px"></button>
       <button class="btn" id="bC" style="left:237px;top:376px"></button>
+      <button class="btn dial" id="bD" style="left:312px;top:76px" aria-label="백업"></button>
     </div>
   </div></div>
 
   <div class="bgbtns"><button class="addbg" id="addbg">+ add background</button><button class="addbg" id="chgbg">⇄ change background</button></div>
   <button class="addbg cap" id="capbtn">📷 capture</button>
   <input type="file" id="bgfile" accept="image/*" hidden>
+  <input type="file" id="bkfile" accept=".json,application/json,text/plain" hidden>
 
   <div class="test">
     <b>✦ 옷 갈아입기</b>
@@ -165,6 +171,9 @@ html,body{height:auto;min-height:100%}
     </div>
   </div>
   <div class="modal" id="bgModal"><div class="mbox"><div class="mt">배경 바꾸기</div><div class="bggrid" id="bgGrid"></div></div></div>
+  <div class="modal" id="bkModal"><div class="mbox"><div class="mt">💾 백업 · 복원</div>
+    <div class="bkhint">소지액, 악세사리, 옷, 테마, 배경, 상태를<br>파일 하나로 저장하고 다시 불러올 수 있어.</div>
+    <div class="mcol"><button class="addbg" id="bkSave">백업 파일 저장하기</button><button class="addbg" id="bkLoad">백업 파일 불러오기</button><button class="addbg ghost" id="bkClose">닫기</button></div></div></div>
   <div class="modal" id="capModal"><div class="mbox"><div class="mt">📷 capture</div><img id="capImg" alt="capture"><div class="mrow"><button class="addbg" id="capSave">이미지로 저장하기</button><button class="addbg ghost" id="capClose">닫기</button></div></div></div>
 </div>
 
@@ -455,11 +464,40 @@ function spriteKey(t){
     default:      return o+':'+condFace();
   }
 }
+// 고양이 귀: 까맣고 복슬복슬한 귀 (192px 스프라이트 좌표, 머리 뒤에 그림)
+function drawEar(c,bx,by,rot,side,twitch){
+  c.save();c.translate(bx,by);c.rotate(rot+side*twitch);c.scale(side,1);
+  const pts=[], N=9, fur=(i)=>i%2?2.2:0;
+  const edge=(x0,y0,cx,cy,x1,y1,out)=>{for(let i=0;i<=N;i++){const u=i/N,v=1-u;
+      const x=v*v*x0+2*v*u*cx+u*u*x1, y=v*v*y0+2*v*u*cy+u*u*y1;
+      const dx=2*v*(cx-x0)+2*u*(x1-cx), dy=2*v*(cy-y0)+2*u*(y1-cy), l=Math.hypot(dx,dy)||1, o=(i>0&&i<N)?fur(i)*out:0;
+      pts.push([x-dy/l*o, y+dx/l*o]);}};
+  edge(-15,6,-17,-16,-6,-31,1);       // 바깥쪽
+  edge(-6,-31,8,-18,15,6,1);          // 안쪽
+  c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();
+  c.fillStyle='#211c29';c.fill();c.lineJoin='round';c.lineWidth=1.4;c.strokeStyle='#0d0a12';c.stroke();
+  c.beginPath();c.moveTo(-9,4);c.quadraticCurveTo(-10,-12,-5,-22);c.quadraticCurveTo(3,-12,8,4);c.closePath();
+  c.fillStyle='#5a4660';c.fill();
+  c.beginPath();c.moveTo(-6,4);c.quadraticCurveTo(-6,-8,-4,-14);c.quadraticCurveTo(1,-7,4,4);c.closePath();
+  c.fillStyle='#b98aa4';c.fill();
+  c.lineCap='round';c.strokeStyle='#a99db4';c.lineWidth=1.3;
+  for(const [x0,y0,x1,y1] of [[-7,5,-9,-6],[-3,5,-3,-9],[1,5,3,-6],[5,5,8,-2]]){c.beginPath();c.moveTo(x0,y0);c.quadraticCurveTo((x0+x1)/2-1,(y0+y1)/2,x1,y1);c.stroke();}
+  c.strokeStyle='#3d3448';c.lineWidth=1.2;
+  for(const [x0,y0,x1,y1] of [[-13,0,-14,-12],[-10,-18,-7,-26],[11,-2,9,-12]]){c.beginPath();c.moveTo(x0,y0);c.lineTo(x1,y1);c.stroke();}
+  c.restore();
+}
+function drawEars(c,t){
+  const ph=(t/1000%4.3)/4.3, tw=ph<.06?Math.sin(ph/.06*Math.PI)*.14:0;
+  const droop=st.mode==='sleep'?.18:0;
+  drawEar(c,73,42,-.38-droop,1,-tw);
+  drawEar(c,123,44,.42+droop,-1,-tw);
+}
 function drawLucas(t,x){
   const under=imgs[spriteKey(t)], bang=imgs.bang;
   octx.setTransform(1,0,0,1,0,0);octx.clearRect(0,0,192,192);
   if(st.wear.tail){const a=.06*Math.sin(t/1000*2*Math.PI/1.6), px=395*192/720, py=575*192/720;
     octx.translate(px,py);octx.rotate(a);octx.translate(-px,-py);octx.drawImage(imgs.tail,0,0);octx.setTransform(1,0,0,1,0,0);}
+  if(st.wear.ears) drawEars(octx,t);
   octx.drawImage(under,0,0);
   const sp=st.mode==='sleep'?3.4:2.2;
   const amp=(st.mode==='sleep'?.10:.16)*Math.sin(t/1000*2*Math.PI/sp)+.03*Math.sin(t/1000*5.1);
@@ -682,7 +720,7 @@ function setMode(m){
   if(st.menu) renderMenu();
 }
 function closeMenu(){st.menu=null;renderMenu();}
-const SHOP=[{key:'tail',name:'고양이 꼬리',price:1000}];
+const SHOP=[{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000}];
 function openSub(name){st.menu=name;st.cur=0;renderMenu();beep(990,.05);}
 function doAction(m){
   // ---- root ----
@@ -990,6 +1028,7 @@ document.getElementById('capSave').onclick=()=>{
 /* ================= save / load ================= */
 const SAVE_KEY='lucasgotchi:v1';
 function saveGame(){
+  if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
       lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
@@ -1006,6 +1045,40 @@ function loadGame(){
     if(d.sleeping && st.room==='bed'){st.mode='sleep';}
   }catch(e){}
 }
+
+/* ================= backup / restore ================= */
+let restoring=false;
+const bkModal=document.getElementById('bkModal'), bkfile=document.getElementById('bkfile');
+document.getElementById('bD').onclick=()=>{bkModal.classList.add('show');beep(990,.05);};
+document.getElementById('bkClose').onclick=()=>bkModal.classList.remove('show');
+document.getElementById('bkSave').onclick=async()=>{
+  saveGame();
+  let save=null,bg=null; try{save=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');bg=localStorage.getItem(SAVE_KEY+':bg');}catch(e){}
+  if(!save){toast('백업할 데이터가 없어.');return;}
+  const data={app:'lucasgotchi',v:1,at:new Date().toISOString(),save,bg:bg||null};
+  const name='lucasgotchi_backup_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.json';
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const file=new File([blob],name,{type:'application/json'});
+  const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(isIOS && navigator.canShare && navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return;}catch(e){}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);beep(1320,.08);
+};
+document.getElementById('bkLoad').onclick=()=>bkfile.click();
+bkfile.onchange=()=>{const f=bkfile.files[0];bkfile.value='';if(!f)return;
+  f.text().then(txt=>{
+    let d=null; try{d=JSON.parse(txt);}catch(e){}
+    if(!d||d.app!=='lucasgotchi'||!d.save||typeof d.save!=='object'){alert('LUCASGOTCHI 백업 파일이 아니야.');return;}
+    if(!confirm('지금 진행 상황을 백업 파일 내용으로 바꿀까?\n('+String(d.at||'').slice(0,10)+' 백업 · '+(d.save.gold|0)+'G)'))return;
+    try{
+      localStorage.setItem(SAVE_KEY,JSON.stringify(d.save));
+      if(d.bg) localStorage.setItem(SAVE_KEY+':bg',d.bg); else localStorage.removeItem(SAVE_KEY+':bg');
+    }catch(e){alert('저장 공간에 쓰지 못했어. 다시 시도해 줘.');return;}
+    restoring=true; location.reload();
+  });
+};
+bkModal.addEventListener('click',e=>{if(e.target===bkModal)bkModal.classList.remove('show');});
+
 setInterval(saveGame,5000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame();});
 window.addEventListener('pagehide',saveGame);
