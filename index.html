@@ -632,9 +632,9 @@ function drawBerry(c){   // 딸기 장식: 머리 위 가운데, 거꾸로 (꼭�
   c.moveTo(88,29);c.lineTo(91,35);c.lineTo(94,30);c.lineTo(97,36);c.lineTo(100,30);c.lineTo(103,35);c.lineTo(106,29);c.closePath();c.fill();c.stroke();
   c.restore();
 }
-function drawArtifact(c){   // 아티팩트: 양쪽 귀걸이를 레오나르드 눈색 보석으로
+function drawArtifact(c){   // 아티팩트: 화면 기준 왼쪽 귀에만 레오나르드 눈색 보석 귀걸이
   c.save();
-  for(const [ex,ey] of [[65.8,101.5],[127.2,101.6]]){
+  for(const [ex,ey] of [[65.8,101.5]]){
     c.fillStyle='#4f7fae';c.beginPath();c.arc(ex,ey,2.9,0,7);c.fill();
     c.fillStyle='#a9d8f6';c.beginPath();c.arc(ex,ey,2.1,0,7);c.fill();
     c.fillStyle='#ffffff';c.fillRect(ex-1.3,ey-1.4,1.1,1.1);
