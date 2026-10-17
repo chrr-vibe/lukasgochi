@@ -3,6 +3,7 @@
   "short_name": "LUCASGOTCHI",
   "description": "루카스 다마고치",
   "lang": "ko",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
