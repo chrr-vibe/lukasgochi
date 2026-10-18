@@ -261,7 +261,6 @@ const ACTS=[
   {id:'wait', label:'기다리기',       room:'hall'},
   {id:'pbook',label:'책 읽기',        room:'prince'},
   {id:'pnews',label:'신문 읽기',      room:'prince'},
-  {id:'ptalk',label:'대화하기',       room:'prince'},
   {id:'cook', label:'요리하기',       room:'kitchen'},
   {id:'taste',label:'시식하기',       room:'kitchen'},
   {id:'pick', label:'책 고르기',      room:'library'},
@@ -633,7 +632,7 @@ const ICONS={
  room:['...#....','..###...','.#####..','#######.','.#...#..','.#.#.#..','.#.#.#..','........'],
 };
 const TOP=['book','news','sleep','eat'], BOT=['talk','move','pet','room'];
-const ICON_OF={read:'book',pick:'book',leo:'talk',eli:'talk',call:'talk',think:'pet',cook:'eat',taste:'eat'};
+const ICON_OF={pbook:'book',pnews:'news',read:'book',pick:'book',leo:'talk',eli:'talk',call:'talk',think:'pet',cook:'eat',taste:'eat'};
 function drawBars(t){
   R(ctx,0,0,W,ROOM_Y,'#fff4f9');R(ctx,0,ROOM_Y-1,W,1,'#e8b9d2');
   R(ctx,0,ROOM_Y+ROOM_H,W,H-ROOM_Y-ROOM_H,'#fff4f9');R(ctx,0,ROOM_Y+ROOM_H,W,1,'#e8b9d2');
@@ -832,9 +831,15 @@ function drawAdr(x,t){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='
 function drawEras(x,t){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure(imgs.eras?'eras':'leo',t),Math.round(x),CHY,CH,CH);}
 function drawLeoHome(x,t){   // 방에 함께 있는 레오나르드 (신문 읽기 땐 레오나르드가 읽음)
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure('leoHome',t),Math.round(x),CHY,CH,CH);
-  if(st.mode==='news'){ctx.drawImage(imgs.leoGlasses,Math.round(x),CHY,CH,CH);
-    const nx=Math.round(x)+35, ny=CHY+60; R(ctx,nx,ny,26,17,'#3b2a46');R(ctx,nx+1,ny+1,24,15,'#f6f1e7');R(ctx,nx+13,ny+1,1,15,'#cfc6b8');
+  if(st.mode==='news') drawLeoReading(x,'news');
+}
+function drawLeoReading(x,kind){   // 레오나르드: 안경 + 신문/책
+  x=Math.round(x);ctx.drawImage(imgs.leoGlasses,x,CHY,CH,CH);
+  const nx=x+35, ny=CHY+60;
+  if(kind==='news'){R(ctx,nx,ny,26,17,'#3b2a46');R(ctx,nx+1,ny+1,24,15,'#f6f1e7');R(ctx,nx+13,ny+1,1,15,'#cfc6b8');
     for(let i=0;i<5;i++){R(ctx,nx+3,ny+4+i*2,8,1,'#9a8f9e');R(ctx,nx+15,ny+4+i*2,8,1,'#9a8f9e');} R(ctx,nx+3,ny+2,8,1,'#3b2a46');}
+  else{R(ctx,nx+1,ny,24,16,'#3b2a46');R(ctx,nx+2,ny+1,22,14,'#2f4f8a');R(ctx,nx+3,ny+1,9,13,'#fffaf0');R(ctx,nx+14,ny+1,9,13,'#fffaf0');R(ctx,nx+12,ny,2,16,'#c9a24a');
+    for(let i=0;i<5;i++){R(ctx,nx+4,ny+3+i*2,6,1,'#9a8f9e');R(ctx,nx+16,ny+3+i*2,6,1,'#9a8f9e');}}
 }
 let P=(x,y)=>[CHX+st.lucX+x*S720, CHY+y*S720];
 
@@ -997,7 +1002,8 @@ function frame(now){
   else if(!st.hungerAsked && st.mode==='idle' && !st.menu && !st.map && !st.leo && !st.script && !st.trans && !st.bro && !st.inf && !st.dead){st.hungerAsked=true;saveGame();eventModal.classList.add('show');}
   // ---- 자동 해제 ----
   const el=t-st.modeT;
-  if(['news','book','read'].includes(st.mode) && el>TEST.timed){ const byLeo=st.mode==='news'&&withLeoNow(); setMode('talk'); say(byLeo?'레오나르드가 신문을 읽어주었다.':'유익했다.'); }
+  if((st.mode==='pbook'||st.mode==='pnews') && el>TEST.timed){ const nw=st.mode==='pnews'; setMode('talk'); say(nw?'레오나르드가 읽어줬다. 뭔가 빼고 얘기해주는 듯 한데...':'레오나르드가 읽어줬다.'); }
+  else if(['news','book','read'].includes(st.mode) && el>TEST.timed){ const byLeo=st.mode==='news'&&withLeoNow(); setMode('talk'); say(byLeo?'레오나르드가 신문을 읽어주었다.':'유익했다.'); }
   else if(st.mode==='think' && el>TEST.timed && st.room==='garden'){ setMode('talk'); say('이런 걸 보고 자라서 그렇게 생겼나?'); }
   else if(st.mode==='think' && el>TEST.timed && isNight() && st.room==='park' && Math.random()<ROB_CHANCE){   // 밤 공원: 불량배에게 골드 전부
     const firstMask=!st.maskOk; st.gold=0;st.maskOk=true;saveGame();setMode('leo');st.script={i:0,lines:[['가진 거 다 내놔.','불량배'],['살다살다 삥을 뜯겨본다...','루카스']],after:()=>{setMode('idle');if(firstMask)toast('✦ 마스크 해금! (상점)',2000);}};say('가진 거 다 내놔.','불량배'); }
@@ -1023,7 +1029,7 @@ function frame(now){
   const night=isNight(); ctx.drawImage(bg(st.room,st.mode!=='sleep',night&&(st.room==='park'||st.room==='dorm'||st.room==='bed')),0,ROOM_Y);
   if(night){ctx.fillStyle=NIGHT_DIM;ctx.fillRect(0,ROOM_Y,W,ROOM_H);}   // 밤: 배경만 어둡게 (캐릭터는 원래 밝기)
   ctx.save();ctx.beginPath();ctx.rect(0,ROOM_Y,W,ROOM_H);ctx.clip();
-  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(princeLeo){ctx.imageSmoothingEnabled=true;ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH);} else if(adrHere&&st.leoSwap) ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t);
+  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(princeLeo){ctx.imageSmoothingEnabled=true;ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH);if(st.mode==='pbook'||st.mode==='pnews')drawLeoReading(CHX+PAIR,st.mode==='pnews'?'news':'book');} else if(adrHere&&st.leoSwap) ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t);
   drawLucas(t,CHX+st.lucX);
   const face=spriteKey(t).split(':')[1];
   if(face==='cry') fxTears(t);
@@ -1145,6 +1151,7 @@ function doAction(m){
     if(m.id==='talk'&&st.inf){closeMenu();beep(1320,.08);setMode('leo');   // 잠입 중: 제롬 ↔ 에라스미오스
       const [a,b]=INF_TALK[Math.random()*INF_TALK.length|0];st.script={i:0,lines:[[a,'제롬'],[b,'에라스미오스']],after:()=>setMode('idle')};say(a,'제롬');return;}
     if(m.id==='talk'&&st.bro){closeMenu();beep(1320,.08);setMode('talk');say('루카. 누구와 말하는 거야?','아드리안');return;}   // 루카스는 말을 못 함
+    if(m.id==='talk'&&st.room==='prince'){closeMenu();beep(1320,.08);setMode('talk');say('✦ 레오나르드와 유익한 시간을 보냈다.','');return;}   // 왕세자 방 대화하기
     if(m.id==='talk'&&st.withLeo&&st.room==='bed'&&(st.wear.bday||st.wear.eyemask)){closeMenu();beep(1320,.08);setMode('leo');   // 방에 부른 레오나르드: 악세사리별 대사
       const opts=[];if(st.wear.bday)opts.push([['오늘은 내가 네게 다 맞출게.','레오나르드']]);
       if(st.wear.eyemask)opts.push([['굉장히 만족스러운 얼굴을 한다.','레오나르드'],['설마 내가 많이 자버린 걸 아는 건가?','루카스']]);
@@ -1183,9 +1190,7 @@ function doAction(m){
     if(Math.random()<.5){st.leo=null;setMode('leo');st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[['깜짝이야.','루카스'],['내 방으로 와.','레오나르드']],i:0,off:70};}
     else{setMode('talk');say('…아무도 오지 않았다.','');}
     return;}
-  if(m.id==='pbook'){setMode('talk');say('레오나르드가 읽어줬다.');return;}
-  if(m.id==='pnews'){setMode('talk');say('레오나르드가 읽어줬다. 뭔가 빼고 얘기해주는 듯 한데...');return;}
-  if(m.id==='ptalk'){setMode('talk');say('✦ 레오나르드와 유익한 시간을 보냈다.','');return;}
+  if(m.id==='pbook'||m.id==='pnews'){setMode(m.id);return;}   // 왕세자 방: 레오나르드가 안경 쓰고 읽어줌 (루카스는 지금 옷 그대로)
   if(m.id==='sync'){   // 이심전심 (잠입마다 한 번)
     if(st.inf&&st.inf.tried){beep(220,.15);toast('이심전심은 한 번만 할 수 있어.');return;}
     if(st.inf){st.inf.tried=true;saveGame();} hideDlg();setMode('mg2');MG2.start(syncEnd);return;}
