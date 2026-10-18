@@ -100,6 +100,9 @@ body.pixel-bg{image-rendering:pixelated}
 .bgbtns .addbg{margin-top:0;font-size:12px;padding:7px 12px}
 .addbg.cap{margin-top:10px}
 .caprow{display:flex;gap:8px;justify-content:center}
+.minput{display:block;width:100%;box-sizing:border-box;margin:6px 0 2px;font-family:var(--font);font-size:13px;color:var(--ink);background:#fff;border:2px solid var(--ink);border-radius:8px;padding:6px 8px;resize:none}
+.mcount{font-size:11px;color:#a98fb5;text-align:right;min-height:14px}
+.mcode{font-size:26px;letter-spacing:6px;color:var(--ink);margin:4px 0}
 .glog{text-align:left;max-height:50vh;overflow-y:auto;font-size:12px;line-height:1.6;color:var(--ink)}
 .glog .gt{color:#a35a8a;font-size:11px;margin-right:6px}
 .glog .ge{padding:4px 2px;border-bottom:1px dashed #e3c6da;white-space:pre-line}
@@ -209,6 +212,8 @@ html,body{height:auto;min-height:100%}
     <div class="mcol" id="guideMenu"><button class="addbg" id="gLog">업데이트 내역</button><button class="addbg" id="gHow">플레이 가이드</button><button class="addbg ghost" id="gClose">닫기</button></div>
     <div id="guideBody" style="display:none"><div class="glog" id="guideText"></div>
       <div class="mrow"><button class="addbg ghost" id="gBack">뒤로</button><button class="addbg ghost" id="gClose2">닫기</button></div></div></div></div>
+  <div class="modal" id="mailModal"><div class="mbox"><div class="mt" id="mailTitle">✉</div><div id="mailBody"></div>
+    <div class="mrow"><button class="addbg" id="mailOk">확인</button><button class="addbg ghost" id="mailCancel">닫기</button></div></div></div>
   <div class="modal" id="capModal"><div class="mbox"><div class="mt">📷 capture</div><img id="capImg" alt="capture"><div class="mrow"><button class="addbg" id="capSave">이미지로 저장하기</button><button class="addbg ghost" id="capClose">닫기</button></div></div></div>
 </div>
 
@@ -284,6 +289,7 @@ const ACTS=[
   {id:'think',label:'사색하기',       room:['park','garden','aliving']},
   {id:'pexplore',label:'탐색하기',   room:'street'},     // 30%: 플레로마 잡기 미니게임
   {id:'disguise',label:'변장하기',   room:'nikolaus'},   // 니콜라우스로 변장 ↔ 해제
+  {id:'mail',label:'편지 관리',      room:'nikolaus'},   // 명성 최대로 해금 (이후 명성이 떨어져도 유지)
   {id:'gleo', label:'레오나르드 만나기',room:'garden'},   // 관계 최대일 때만
   {id:'wait', label:'기다리기',       room:'hall'},
   {id:'pbook',label:'책 읽기',        room:'prince'},
@@ -1131,6 +1137,7 @@ function frame(now){
   if(MG.active()){MG.update(t);MG.draw();}
   if(MG2.active()) MG2.draw(t);
   if(st.map) drawMap(t);
+  drawMailIcon(t);
   if(st.trans>0){
     const q=st.trans, h=Math.round(ROOM_H/2*(q<.5?q*2:(1-q)*2));
     R(ctx,0,ROOM_Y,W,h,'#3b2a46');R(ctx,0,ROOM_Y+ROOM_H-h,W,h,'#3b2a46');
@@ -1177,12 +1184,15 @@ function relHTML(){   // 관계도: 지금은 레오나르드, 아드리안 방�
 function menuItems(){
   if(st.menu==='choice') return [{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
-  if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
+  if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
   if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()).map(k=>({id:'go',to:k})),{id:'map',label:'다른 지역'}];
   if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'}];
   if(st.menu==='rel') return [{id:'relback',label:'돌아가기'}];
   if(st.menu==='inv') return [...Array(INV_MAX)].map((_,i)=>({id:'slot',i}));
   if(st.menu==='item') return [{id:'iuse',label:'사용'},{id:'igive',label:'주기'},{id:'idrop',label:'파기'}];
+  if(st.menu==='mail') return [{id:'mInbox',label:'받은 편지',tag:hasUnread()?'NEW':''},{id:'mWrite',label:'편지 쓰기'},{id:'mAdd',label:'친구 추가'},{id:'mMe',label:'내 코드·이름'}];
+  if(st.menu==='inbox'){const ib=st.inbox||[];return ib.length?ib.map((x,i)=>({id:'mLetter',i,label:x.from,tag:x.read?'':'●'})).reverse():[{id:'none',label:'받은 편지가 없어'}];}
+  if(st.menu==='letter') return [{id:'mRead',label:'읽기'},{id:'mDrop',label:'버리기'}];
   if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:st.owned[x.key]?'보유중':(x.lock&&x.lock())?'잠김':x.price+'G'}));
   if(st.menu==='acc'){const ks=Object.keys(st.owned).filter(k=>st.owned[k]); return ks.length?ks.map(k=>({id:'wear',key:k,label:SHOP.find(x=>x.key===k).name,tag:st.niko&&k!=='mask'?'변장 중':st.wear[k]?'착용중':'해제'})):[{id:'none',label:'가진 악세사리가 없어'}];}
   return [];
@@ -1204,7 +1214,7 @@ function _renderMenu(){
   if(st.menu==='status'||st.menu==='rel'){const its=menuItems(), it=i=>its[i]?`<div class="it ${i===st.cur?'sel':''}"><span class="cur">▶</span>${its[i].label}</div>`:'';
     menuEl.innerHTML=st.menu==='rel'?relHTML()+it(0):statusHTML(it);menuEl.style.display='block';return;}
   const items=menuItems();
-  const title={choice:'잠입할까?',root:'무엇을 할까?',act:'행동하기',move:'어디로 갈까?',shop:'상점 · '+st.gold+'G',acc:'악세사리',item:(ITEMS[(st.inv||[])[st.invSel]]||{}).name}[st.menu];
+  const title={choice:'잠입할까?',root:'무엇을 할까?',act:'행동하기',move:'어디로 갈까?',shop:'상점 · '+st.gold+'G',acc:'악세사리',item:(ITEMS[(st.inv||[])[st.invSel]]||{}).name,mail:'편지 관리',inbox:'받은 편지',letter:((st.inbox||[])[st.mailSel]||{}).from}[st.menu];
   menuEl.innerHTML=`<div class="ttl"><span>♥ ${title}</span><span>${PLACES[st.room]}</span></div>`+items.map((m,i)=>{
     const off=!avail(m);
     let label=m.label; if(m.id==='sleep'&&st.mode==='sleep') label='일어나기';
@@ -1267,6 +1277,16 @@ function doAction(m){
   if(st.menu==='status'){ if(m.id==='me'){beep(660,.04);return;} return openSub(m.id); }
   if(st.menu==='inv'){ if(!(st.inv||[])[m.i]){beep(330,.05);return;} st.invSel=m.i; return openSub('item'); }
   if(st.menu==='item'){ return useItem(m.id); }
+  if(st.menu==='mail'){
+    if(m.id==='mInbox') return openSub('inbox');
+    if(m.id==='mWrite'&&!(st.friends||[]).length){beep(220,.15);toast('친구를 먼저 추가해 줘.');return;}
+    beep(990,.05);mailForm({mWrite:'write',mAdd:'add',mMe:'me'}[m.id]);return;}
+  if(st.menu==='inbox'){ if(m.id!=='mLetter'){beep(330,.05);return;} st.mailSel=m.i; return openSub('letter'); }
+  if(st.menu==='letter'){ const L=(st.inbox||[])[st.mailSel|0]; if(!L){closeMenu();return;}
+    if(m.id==='mDrop'){st.inbox.splice(st.mailSel|0,1);if(!L.read)fbMarkRead(L.id);saveGame();st.menu='inbox';st.cur=0;renderMenu();beep(440,.08);toast('✦ 편지를 버렸다.');return;}
+    closeMenu();beep(1320,.08);if(!L.read){L.read=true;fbMarkRead(L.id);saveGame();}
+    setMode('leo');const lines=[['✦ '+L.from+'에게서 편지가 왔다.',''],[L.text||'(아무것도 적혀 있지 않다)',L.from]];
+    st.script={i:0,lines,after:()=>setMode('idle')};say(...lines[0]);return; }
   if(m.id==='buy'){
     const it=SHOP.find(x=>x.key===m.key);
     if(st.owned[m.key]){beep(330,.08);toast('이미 가지고 있어.');return;}
@@ -1283,6 +1303,7 @@ function doAction(m){
   if(m.id==='map'){closeMenu();beep(990,.06);st.map={cur:Math.max(0,MAP_NODES.findIndex(n=>n.id===regionNow())),t0:performance.now()};return;}
   if(m.id==='go'){st.cookStreak=0;closeMenu();beep(1320,.08);setMode('idle');st.leo=null;if(st.withLeo){st.withLeo=false;saveGame();}st.trans=.01;st.transTo=m.to;return;}
   // ---- actions ----
+  if(m.id==='mail'&&inRoom(m)&&st.letterOk){openSub('mail');return;}
   if(m.id==='gleo'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 만날 수 있어.');return;}
   if(m.id==='call'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 부를 수 있어.');return;}
   if(!avail(m)){beep(220,.15,'square',.05);toast(placeTag(m)+'에서만 할 수 있어.');return;}
@@ -1444,7 +1465,8 @@ function plEnd(ok){   // 플레로마 잡기 결과 (5번 소탕하면 니콜라
   if(ok){const was=st.plClear|0;st.plClear=was+1;
     let fame;
     if(was<PL_UNLOCK) fame='✦ 명성이 올라갔다. ('+st.plClear+'/'+PL_UNLOCK+')';   // 해금 전: 5번까지 숫자 표시
-    else if(st.niko){st.fame=Math.min(FAME_MAX,(st.fame|0)+1);st.fameT=Date.now();fame='✦ 명성이 올라갔다.';}   // 해금 후: 니콜라우스로 소탕해야 명성 +1
+    else if(st.niko){st.fame=Math.min(FAME_MAX,(st.fame|0)+1);st.fameT=Date.now();fame='✦ 명성이 올라갔다.';
+      if(st.fame>=FAME_MAX&&!st.letterOk){st.letterOk=true;setTimeout(()=>toast('✦ 편지 관리 해금! (니콜라우스 방)',2200),5200);setTimeout(()=>fbCheckMail(true),6000);}}   // 해금 후: 니콜라우스로 소탕해야 명성 +1
     saveGame();
     st.script={i:0,lines:fame?[['✦ 플레로마를 소탕했다.',''],[fame,'']]:[['✦ 플레로마를 소탕했다.','']],after:()=>{setMode('idle');if(was<PL_UNLOCK&&st.plClear>=PL_UNLOCK)toast('✦ 니콜라우스 방 해금! (바이에른 궁)',2200);}};}
   else st.script={i:0,lines:[['✦ 플레로마가 달아났다...','']],after:()=>setMode('idle')};
@@ -1501,6 +1523,9 @@ function btnA(){
   if(leoBusy()){beep(330,.04);return;}   // 레오나르드 등 인물이 오는 이벤트: 끝날 때까지 취소 안 됨
   if(st.menu==='rel'){st.menu='status';st.cur=1;renderMenu();beep(520,.06);return;}
   if(st.menu==='item'){st.menu='inv';st.cur=st.invSel|0;renderMenu();beep(520,.06);return;}
+  if(st.menu==='letter'){st.menu='inbox';st.cur=Math.max(0,(st.inbox||[]).length-1-(st.mailSel|0));renderMenu();beep(520,.06);return;}
+  if(st.menu==='inbox'){st.menu='mail';st.cur=0;renderMenu();beep(520,.06);return;}
+  if(st.menu==='mail'){st.menu='act';st.cur=0;renderMenu();beep(520,.06);return;}
   if(st.menu==='inv'){st.menu='status';st.cur=4;renderMenu();beep(520,.06);return;}
   if(st.menu==='shop'||st.menu==='acc'){const k=st.menu;st.menu='status';st.cur=k==='shop'?2:3;renderMenu();beep(520,.06);return;}
   if(st.menu==='act'||st.menu==='move'||st.menu==='status'){const k=st.menu;st.menu='root';st.cur=ROOT_IDX[k];renderMenu();beep(520,.06);return;}
@@ -1533,7 +1558,8 @@ function bind(id,fn){const el=document.getElementById(id), lane={bA:'L',bC:'R'}[
   el.addEventListener('contextmenu',e=>e.preventDefault());}
 bind('bA',btnA);bind('bB',btnC);bind('bC',btnB);
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='a'||k==='arrowleft')MG.release('L');if(k==='d'||k==='arrowdown')MG.release('R');});
-document.addEventListener('keydown',e=>{const k=e.key.toLowerCase(); if(e.repeat&&st.mode==='mg')return;
+document.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('input,textarea,select'))return;   // 입력창에 글 쓸 땐 게임 버튼 X
+  const k=e.key.toLowerCase(); if(e.repeat&&st.mode==='mg')return;
   if(k==='a'||k==='arrowleft')btnA(); if(k==='d'||k==='arrowdown')btnB(); if(k==='s'||k==='enter'||k==='arrowright')btnC();});
 
 /* ================= page backgrounds (pixel presets) ================= */
@@ -1783,18 +1809,19 @@ function saveGame(){
   if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
-      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,eyemaskOk:st.eyemaskOk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,withLeo:st.withLeo,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
+      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,eyemaskOk:st.eyemaskOk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,withLeo:st.withLeo,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
   }catch(e){}
 }
 function loadGame(){
   try{
     const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return;
-    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','eyemaskOk','sleepStart','rel','relT','withLeo']) if(d[k]!==undefined) st[k]=d[k];
+    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','eyemaskOk','sleepStart','rel','relT','withLeo']) if(d[k]!==undefined) st[k]=d[k];
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
     if(isLocked(st.room)) st.room='garden';
-    if(st.owned&&st.owned.bday) st.bdayOk=true;   // 이미 산 생일 꼬깔은 해금 상태 유지
+    if(st.owned&&st.owned.bday) st.bdayOk=true;
+    if((st.fame|0)>=FAME_MAX) st.letterOk=true;   // 이미 산 생일 꼬깔은 해금 상태 유지
     if(REGION_OF[st.room]==='anhalt'&&(st.adrMeet|0)<ANHALT_MEET) st.room='bed';
     st.poison=st.poison===true?1:(st.poison|0);
     if(!SPR.outfits[st.outfit]) st.outfit='basic';
@@ -1873,8 +1900,140 @@ const PLAY_GUIDE=`<h4>⏰ 시간 이벤트 존재</h4><ul><li>특정 시간에 �
   $('gClose').onclick=$('gClose2').onclick=()=>m.classList.remove('show');
 })();
 document.getElementById('noteOk').onclick=()=>{document.getElementById('noteModal').classList.remove('show');try{localStorage.setItem(SAVE_KEY+':note',UPDATE_NOTE.id);}catch(e){}};
+/* ================= 친구 편지 (Firebase · 실패해도 게임은 그대로) ================= */
+const MAIL_CHECK_MS=60*60*1000, NPC_MAIL_MS=12*60*60*1000, FRIEND_MAX=5, MAIL_LEN=50;
+const NPC_LETTERS=[['익명','당신은 내 구원자...'],['익명',''],['레오나르드','바이에른으로 와.'],['익명','당신과 가까운 사이가 되고 싶어요.'],
+  ['익명','(암호로 구성되어 있다)'],['아드리안','사랑하는 내 동생 루카. 요즘 들어 네 이야기가 내게도 많이 들려오는구나. (후략)']];
+const FB_CFG={apiKey:"AIzaSyAmAcm9sj1VpXUeDtW7h5OPGD4Io-bjMRA",authDomain:"lucasgotchi.firebaseapp.com",projectId:"lucasgotchi",
+  storageBucket:"lucasgotchi.firebasestorage.app",messagingSenderId:"257193361662",appId:"1:257193361662:web:0e4f72c86185784da0e5af"};
+const FB_SDK='https://www.gstatic.com/firebasejs/10.12.2/';
+const FB={ready:false,busy:false,uid:null,db:null,fs:null};
+const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
+const CODE_CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // 0·O·1·I 제외
+const newCode=()=>[...Array(6)].map(()=>CODE_CH[Math.random()*CODE_CH.length|0]).join('');
+async function fbStart(){   // 온라인일 때만: 익명 로그인 → (없으면) 친구 코드 생성 → 편지 확인
+  if(FB.ready||FB.busy||!navigator.onLine) return FB.ready;
+  FB.busy=true;
+  try{
+    const [appM,authM,fs]=await withTimeout(Promise.all(['firebase-app.js','firebase-auth.js','firebase-firestore.js'].map(f=>import(FB_SDK+f))),15000);
+    const app=appM.getApps().length?appM.getApp():appM.initializeApp(FB_CFG);
+    const auth=authM.getAuth(app);
+    const user=auth.currentUser||(await withTimeout(authM.signInAnonymously(auth),15000)).user;
+    FB.uid=user.uid;FB.db=fs.getFirestore(app);FB.fs=fs;FB.ready=true;
+    if(!st.myCode||st.myUid!==FB.uid) await fbMakeCode();   // 기존 플레이어도 처음 온라인일 때 코드 생성 (저장 데이터는 그대로)
+    fbFlushRead();
+  }catch(e){console.warn('[편지] 연결 실패 — 다음에 다시 시도',e);FB.ready=false;}
+  FB.busy=false;
+  return FB.ready;
+}
+async function fbMakeCode(){
+  const {doc,getDoc,setDoc,serverTimestamp}=FB.fs;
+  for(let n=0;n<8;n++){const c=newCode(), ref=doc(FB.db,'codes',c);
+    if((await getDoc(ref)).exists()) continue;   // 이미 있는 코드면 다시 생성
+    await setDoc(ref,{uid:FB.uid,name:st.myName||'루카스',createdAt:serverTimestamp()});
+    st.myCode=c;st.myUid=FB.uid;saveGame();return;}
+}
+async function fbCheckMail(force){   // 안 읽은 편지 받아오기 (orderBy 없이 → 앱에서 시간순 정렬)
+  if(!st.letterOk) return;
+  if(!force&&Date.now()-(st.mailCheckT|0)<MAIL_CHECK_MS) return;
+  if(!(await fbStart())) return;
+  try{
+    const {collection,query,where,getDocs}=FB.fs;
+    const snap=await withTimeout(getDocs(query(collection(FB.db,'messages'),where('toUid','==',FB.uid),where('read','==',false))),15000);
+    st.inbox=st.inbox||[];st.mailSeen=st.mailSeen||[];
+    const got=[];snap.forEach(d=>{if(st.mailSeen.includes(d.id))return;const m=d.data();
+      got.push({id:d.id,from:String(m.fromName||'친구').slice(0,12),text:String(m.text||'').slice(0,100),t:m.createdAt&&m.createdAt.toMillis?m.createdAt.toMillis():Date.now(),read:false});});
+    got.sort((a,b)=>a.t-b.t);
+    for(const g of got){st.inbox.push(g);st.mailSeen.push(g.id);}
+    st.mailSeen=st.mailSeen.slice(-300);st.mailCheckT=Date.now();saveGame();
+    if(got.length) toast('✉ 편지가 도착했다.',1600);
+  }catch(e){console.warn('[편지] 확인 실패',e);}
+}
+function fbMarkRead(id){   // 서버 read:true (실패하면 다음 접속 때 다시)
+  if(!id||id.startsWith('npc_')) return;
+  st.mailPending=[...new Set([...(st.mailPending||[]),id])];saveGame();fbFlushRead();
+}
+async function fbFlushRead(){
+  if(!FB.ready||!(st.mailPending||[]).length) return;
+  const {doc,updateDoc}=FB.fs;
+  for(const id of [...st.mailPending]){try{await withTimeout(updateDoc(doc(FB.db,'messages',id),{read:true}),10000);st.mailPending=st.mailPending.filter(x=>x!==id);}catch(e){}}
+  saveGame();
+}
+function npcMailTick(){   // 현실 12시간마다 익명/인물 편지 (로컬)
+  if(!st.letterOk) return;
+  if(!st.npcMailT){st.npcMailT=Date.now();saveGame();return;}
+  if(Date.now()-st.npcMailT<NPC_MAIL_MS) return;
+  const [from,text]=NPC_LETTERS[Math.random()*NPC_LETTERS.length|0];
+  st.inbox=st.inbox||[];st.inbox.push({id:'npc_'+Date.now(),from,text,t:Date.now(),read:false});
+  st.npcMailT=Date.now();saveGame();
+}
+const hasUnread=()=>(st.inbox||[]).some(m=>!m.read);
+function drawMailIcon(t){   // LCD 오른쪽 위 깜빡이는 도트 편지
+  if(!hasUnread()||((t/450)|0)%2) return;
+  const x=W-14,y=ROOM_Y+3;
+  R(ctx,x-1,y-1,13,10,'#3b2a46');R(ctx,x,y,11,8,'#fffaf0');
+  for(let i=0;i<5;i++){R(ctx,x+i,y+i,1,1,'#ff4f8f');R(ctx,x+10-i,y+i,1,1,'#ff4f8f');}
+  R(ctx,x+5,y+5,1,1,'#ff4f8f');R(ctx,x+4,y+5,3,2,'#ff8fbf');
+}
+/* ---- 입력 창 (편지 쓰기 / 친구 추가 / 내 코드·이름) ---- */
+const mailModal=document.getElementById('mailModal');
+function mailForm(kind){
+  const $=id=>document.getElementById(id), body=$('mailBody'), ok=$('mailOk');
+  const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  ok.style.display='';
+  if(kind==='write'){
+    $('mailTitle').textContent='✉ 편지 쓰기';
+    body.innerHTML=`<select id="mfTo" class="minput">${(st.friends||[]).map((f,i)=>`<option value="${i}">${esc(f.name)} (${f.code})</option>`).join('')}</select>
+      <textarea id="mfText" class="minput" maxlength="${MAIL_LEN}" rows="3" placeholder="하고 싶은 말 (${MAIL_LEN}자)"></textarea><div class="mcount" id="mfCount">${MAIL_LEN}자 남음</div>`;
+    $('mfText').oninput=()=>{$('mfCount').textContent=(MAIL_LEN-$('mfText').value.length)+'자 남음';};
+    ok.textContent='보내기';
+    ok.onclick=async()=>{const f=st.friends[+$('mfTo').value], text=$('mfText').value.trim().slice(0,MAIL_LEN);
+      if(!text){$('mfCount').textContent='내용을 적어줘.';return;}
+      ok.disabled=true;$('mfCount').textContent='보내는 중…';
+      try{if(!(await fbStart())) throw new Error('offline');
+        const {collection,addDoc,serverTimestamp}=FB.fs;
+        await withTimeout(addDoc(collection(FB.db,'messages'),{toUid:f.uid,fromUid:FB.uid,fromName:(st.myName||'루카스').slice(0,12),text,createdAt:serverTimestamp(),read:false}),15000);
+        mailModal.classList.remove('show');toast('✦ '+f.name+'에게 편지를 보냈다.',1800);
+      }catch(e){$('mfCount').textContent='보내지 못했어. 인터넷 연결을 확인해 줘.';}
+      ok.disabled=false;};
+  }else if(kind==='add'){
+    $('mailTitle').textContent='✦ 친구 추가';
+    body.innerHTML=`<input id="mfCode" class="minput" maxlength="6" placeholder="친구 코드 6자리" autocomplete="off" style="text-transform:uppercase;letter-spacing:3px;text-align:center"><div class="mcount" id="mfMsg">친구는 최대 ${FRIEND_MAX}명 (지금 ${(st.friends||[]).length}명)</div>`;
+    ok.textContent='추가하기';
+    ok.onclick=async()=>{const code=$('mfCode').value.trim().toUpperCase(), msg=$('mfMsg');
+      if(!/^[A-Z0-9]{6}$/.test(code)){msg.textContent='코드 6자리를 입력해 줘.';return;}
+      if(code===st.myCode){msg.textContent='내 코드야.';return;}
+      if((st.friends||[]).some(f=>f.code===code)){msg.textContent='이미 친구야.';return;}
+      if((st.friends||[]).length>=FRIEND_MAX){msg.textContent='친구는 최대 '+FRIEND_MAX+'명까지야.';return;}
+      ok.disabled=true;msg.textContent='찾는 중…';
+      try{if(!(await fbStart())) throw new Error('offline');
+        const {doc,getDoc}=FB.fs;const d=await withTimeout(getDoc(doc(FB.db,'codes',code)),15000);
+        if(!d.exists()) msg.textContent='그런 코드는 없어.';
+        else{const v=d.data();st.friends=[...(st.friends||[]),{code,uid:v.uid,name:String(v.name||'친구').slice(0,12)}];saveGame();
+          mailModal.classList.remove('show');toast('✦ '+(v.name||'친구')+'와(과) 친구가 되었다.',1800);}
+      }catch(e){msg.textContent='찾지 못했어. 인터넷 연결을 확인해 줘.';}
+      ok.disabled=false;};
+  }else if(kind==='me'){
+    $('mailTitle').textContent='✦ 내 코드·이름';
+    body.innerHTML=`<div class="mcode">${st.myCode?esc(st.myCode):'아직 없음'}</div><div class="mcount">${st.myCode?'친구에게 이 코드를 알려줘.':'인터넷에 연결되면 자동으로 만들어져.'}</div>
+      <input id="mfName" class="minput" maxlength="12" placeholder="내 이름" value="${esc(st.myName||'루카스')}"><div class="mcount" id="mfMsg">친구 목록: ${(st.friends||[]).map(f=>esc(f.name)).join(', ')||'없음'}</div>`;
+    ok.textContent='이름 저장';
+    ok.onclick=async()=>{const n=$('mfName').value.trim().slice(0,12);if(!n){$('mfMsg').textContent='이름을 적어줘.';return;}
+      st.myName=n;saveGame();$('mfMsg').textContent='저장했어.';
+      try{if(st.myCode&&(await fbStart())){const {doc,setDoc}=FB.fs;await withTimeout(setDoc(doc(FB.db,'codes',st.myCode),{name:n},{merge:true}),10000);}}catch(e){}};
+    if(!st.myCode) fbStart().then(ok2=>{if(ok2&&mailModal.classList.contains('show'))mailForm('me');});
+  }
+  mailModal.classList.add('show');
+}
+document.getElementById('mailCancel').onclick=()=>mailModal.classList.remove('show');
+
 loadGame(); if(st.dead) deadModal.classList.add('show');
 else{let seen=null;try{seen=localStorage.getItem(SAVE_KEY+':note');}catch(e){} if(seen!==UPDATE_NOTE.id){document.getElementById('noteText').textContent=UPDATE_NOTE.text;document.getElementById('noteModal').classList.add('show');}} if(!SHELL[st.theme]) st.theme='1'; applyBg(); renderShell(); fitEgg(); applyOutfit();
+setTimeout(()=>{try{fbStart().then(()=>fbCheckMail(true));}catch(e){}},1500);   // 시작: 온라인이면 로그인·코드 생성·편지 확인
+setInterval(()=>{try{npcMailTick();fbCheckMail(true);}catch(e){}},MAIL_CHECK_MS);   // 켜져 있는 동안 1시간마다
+setInterval(()=>{try{npcMailTick();}catch(e){}},60*1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){try{npcMailTick();fbCheckMail(false);}catch(e){}}});   // 돌아왔을 때 1시간 지났으면
+window.addEventListener('online',()=>{try{fbStart().then(()=>fbCheckMail(false));}catch(e){}});
 
 </script>
 <script>

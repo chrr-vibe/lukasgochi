@@ -1,6 +1,6 @@
 /* LUCASGOTCHI service worker
    - 업데이트를 올릴 때마다 아래 VERSION 숫자를 올려주세요. */
-const VERSION = 'v49';
+const VERSION = 'v50';
 const CACHE = 'lucasgotchi-' + VERSION;
 const CORE = [
   './',
@@ -25,10 +25,15 @@ self.addEventListener('activate', e => {
   );
 });
 
+// Firebase(친구 편지) 요청은 캐시하지 않고 그대로 네트워크로 (픽셀 폰트용 fonts.googleapis/fonts.gstatic 은 계속 캐시)
+const NO_CACHE_HOST = /(^|\.)(googleapis\.com|gstatic\.com|firebaseio\.com)$|identitytoolkit/;
+const FONT_HOST = /^fonts\.(googleapis|gstatic)\.com$/;
+
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (NO_CACHE_HOST.test(url.hostname) && !FONT_HOST.test(url.hostname)) return;   // 브라우저 기본 네트워크 처리
+  if (req.method !== 'GET') return;
 
   // 페이지: 네트워크 우선 (새 버전 바로 반영), 오프라인이면 캐시
   if (req.mode === 'navigate') {
