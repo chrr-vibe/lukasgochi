@@ -1,10 +1,11 @@
 /* LUCASGOTCHI service worker
    - 업데이트를 올릴 때마다 아래 VERSION 숫자를 올려주세요. */
-const VERSION = 'v57';
+const VERSION = 'v58';
 const CACHE = 'lucasgotchi-' + VERSION;
 const CORE = [
   './',
   './index.html',
+  './sprites.js',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
@@ -14,7 +15,7 @@ const CORE = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));   // HTTP 캐시 건너뛰고 새로 받기
 });
 
 self.addEventListener('activate', e => {
@@ -49,6 +50,17 @@ self.addEventListener('fetch', e => {
 
   // 매니페스트·아이콘: 네트워크 우선 (설치 정보가 옛 캐시에 묶이지 않도록), 오프라인이면 캐시
   if (url.origin === location.origin && /\.(webmanifest|png)$/.test(url.pathname)) {
+    e.respondWith(
+      fetch(req, { cache: 'no-cache' }).then(res => {
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // 스프라이트(sprites.js): 네트워크 우선 (index.html과 항상 같은 버전), 오프라인이면 캐시
+  if (url.origin === location.origin && /\.js$/.test(url.pathname) && !/sw\.js$/.test(url.pathname)) {
     e.respondWith(
       fetch(req, { cache: 'no-cache' }).then(res => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
