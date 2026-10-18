@@ -1337,7 +1337,12 @@ function doAction(m){
   if(m.id==='jbook'||m.id==='jnews'){setMode(m.id==='jbook'?'book':'news');return;}   // 대공자 방: 루카스가 읽음
   if(m.id==='pexplore'){   // 프로이센 거리: 30% 플레로마 출현 → 리듬 미니게임
     const pl3=st.niko&&(st.fame|0)>=FAME_MAX;   // 명성 최대 + 니콜라우스: 리듬 대신 갤러그식 플레로마 잡기
-    if(Math.random()<PL_CHANCE){setMode('leo');st.script={i:0,lines:[['✦ 골목에서 플레로마를 발견했다!','']],after:()=>{hideDlg();if(pl3){setMode('mg3');MG3.start(pl3End);}else{setMode('mg');MG.start(plEnd,'pleroma');}}};say(...st.script.lines[0]);}
+    // 니콜라우스 컨디션: 허기·건강 둘 다 0 → 피버타임 15초 / 둘 중 하나라도 반 이하 → 10초 / 아니면 5초
+    const now=Date.now(), hu=Math.max(0,(TEST.hungryAfter-(now-st.lastEat))/TEST.hungryAfter), he=Math.max(0,(TEST.sickAfter-(now-st.lastSleep))/TEST.sickAfter);
+    const worst=pl3&&hu<=0&&he<=0, weak=pl3&&!worst&&(hu<=.5||he<=.5), fever=worst?15000:weak?10000:5000;
+    const pre=[['✦ 골목에서 플레로마를 발견했다!','']];
+    if(worst)pre.push(['✦ 니콜라우스의 건강 상태가 최악이라 난이도가 솟았다.','']);else if(weak)pre.push(['✦ 니콜라우스의 건강 상태가 좋지 않아 난이도가 올라갔다.','']);
+    if(Math.random()<PL_CHANCE){setMode('leo');st.script={i:0,lines:pre,after:()=>{hideDlg();if(pl3){setMode('mg3');MG3.start(pl3End,fever);}else{setMode('mg');MG.start(plEnd,'pleroma');}}};say(...st.script.lines[0]);}
     else{setMode('talk');say(['아무 것도 찾지 못했다.','조용한 거리다.','낡은 포스터가 바람에 펄럭인다.'][Math.random()*3|0],'');}
     return;}
   if(m.id==='think'&&st.room==='aliving'){setMode('talk');say('얼굴이 따갑다... 날 싫어하는 티 좀 그만 내라.','루카스');return;}   // 왕세자 방: 레오나르드가 안경 쓰고 읽어줌 (루카스는 지금 옷 그대로)
@@ -1442,11 +1447,10 @@ const MG3=(()=>{
   const CFG={time:60000,lives:5,maxLives:5,wandSpd:78,laserW:6,stick:700,spawn0:1150,spawn1:520,fall0:16,fall1:30};
   const BOT=ROOM_Y+ROOM_H-10, WY=BOT-10;   // 하단선 / 완드 위치
   const WAND=['..Y..','.YWY.','..Y..','..B..','..B..','..B..','..B..'], WP={Y:'#ffe066',W:'#ffffff',B:'#8a5a2b'};
-  const KIND=[['poison',5],['exit',4],['heart',1]], KIND_RUSH=[['poison',5],['exit',4],['heart',2]];   // 비중 5:4:1 / 막판 5초: 하트 2배
-  const RUSH=5000;   // 마지막 5초만 빠르게
+  const KIND=[['poison',5],['exit',4],['heart',1]], KIND_RUSH=[['poison',5],['exit',4],['heart',2]];   // 비중 5:4:1 / 피버타임: 하트 2배
   let s=null;
   const pickKind=rush=>{const K=rush?KIND_RUSH:KIND;let x=Math.random()*K.reduce((a,[,w])=>a+w,0);for(const [k,w] of K){if((x-=w)<0)return k;}return 'poison';};
-  function start(onEnd){s={t0:performance.now(),last:performance.now(),now:0,x:W/2,held:{L:false,R:false},shots:[],objs:[],fx:[],pops:[],lives:CFG.lives,nextSpawn:1500,laser:false,hum:0,phase:'play',endT:0,hurt:-9999,onEnd};
+  function start(onEnd,rush=5000){s={rush,t0:performance.now(),last:performance.now(),now:0,x:W/2,held:{L:false,R:false},shots:[],objs:[],fx:[],pops:[],lives:CFG.lives,nextSpawn:1500,laser:false,hum:0,phase:'play',endT:0,hurt:-9999,onEnd};
     beep(660,.08);setTimeout(()=>beep(990,.1),160);closeMenu();}
   function move(l,on){if(!s)return;if(on&&!s.held[l]&&s.phase==='play')s.x=Math.max(4,Math.min(W-4,s.x+(l==='L'?-4:4)));s.held[l]=on;}   // 톡 눌러도 조금은 움직이게
   function fire(on=true){if(!s)return;s.laser=on;if(on){s.laserUntil=s.now+CFG.stick;if(s.phase==='play')beep(1760,.04,'square',.03);}}   // 가운데 버튼: 누르는 동안 레이저 (살짝 눌러도 0.7초는 유지)
@@ -1456,7 +1460,7 @@ const MG3=(()=>{
     if(ok)[1320,1568,1760,2093].forEach((f,i)=>setTimeout(()=>beep(f,.12,'square',.05),i*110));else[440,330,220].forEach((f,i)=>setTimeout(()=>beep(f,.16,'triangle',.06),i*150));
     setTimeout(()=>{const cb=s&&s.onEnd;s=null;cb&&cb(ok);},1900);}
   function update(t){if(!s)return;const dt=Math.min(.05,(t-s.last)/1000);s.last=t;s.now=t-s.t0;if(s.phase!=='play')return;
-    const rush=s.now>=CFG.time+1200-RUSH, k=rush?1:.3*Math.min(1,s.now/(CFG.time+1200-RUSH));   // 천천히 조금씩 → 마지막 5초만 확 빨라짐
+    const rush=s.now>=CFG.time+1200-s.rush, k=rush?1:.3*Math.min(1,s.now/(CFG.time+1200-s.rush));   // 천천히 조금씩 → 마지막 피버타임(기본 5초)만 확 빨라짐
     if(s.held.L)s.x-=CFG.wandSpd*dt; if(s.held.R)s.x+=CFG.wandSpd*dt; s.x=Math.max(4,Math.min(W-4,s.x));
     if(s.now>=s.nextSpawn){const kind=pickKind(rush);s.objs.push({kind,x:8+Math.random()*(W-16),y:ROOM_Y+2,v:CFG.fall0+(CFG.fall1-CFG.fall0)*k+Math.random()*6,ph:Math.random()*6.28,sw:kind==='exit'?6+Math.random()*6:kind==='poison'?Math.random()*4:2,bx:0});
       s.objs[s.objs.length-1].bx=s.objs[s.objs.length-1].x;
