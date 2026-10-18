@@ -1434,19 +1434,19 @@ const MG=(()=>{
   }
   return {start,press,release,update,draw,active:()=>!!s,kit:{r,bmp,text,textC,HEART,HP,POISON,PP,EXIT,EP,lamps}};
 })();
-// 플레로마 잡기 (명성 최대 + 니콜라우스): 갤러그식. 왼/오 완드 이동, 가운데 마법 발사. 2분 버티기
+// 플레로마 잡기 (명성 최대 + 니콜라우스): 갤러그식. 왼/오 완드 이동, 가운데 꾹 누르면 레이저(그 줄 전부 소멸). 1분 버티기, 하트 5개
 const MG3=(()=>{
   const {r,bmp,text,textC,HEART,HP,POISON,PP,EXIT,EP,lamps}=MG.kit;
-  const CFG={time:120000,lives:3,maxLives:3,wandSpd:78,shotSpd:150,cool:230,spawn0:1150,spawn1:520,fall0:16,fall1:30};
+  const CFG={time:60000,lives:5,maxLives:5,wandSpd:78,laserW:4,spawn0:1700,spawn1:780,fall0:8,fall1:15};   // 떨어지는 속도는 전보다 절반
   const BOT=ROOM_Y+ROOM_H-10, WY=BOT-10;   // 하단선 / 완드 위치
   const WAND=['..Y..','.YWY.','..Y..','..B..','..B..','..B..','..B..'], WP={Y:'#ffe066',W:'#ffffff',B:'#8a5a2b'};
   const KIND=[['poison',5],['exit',4],['heart',1]];   // 비중 5:4:1
   let s=null;
   const pickKind=()=>{let x=Math.random()*10;for(const [k,w] of KIND){if((x-=w)<0)return k;}return 'poison';};
-  function start(onEnd){s={t0:performance.now(),last:performance.now(),now:0,x:W/2,held:{L:false,R:false},shots:[],objs:[],fx:[],pops:[],lives:CFG.lives,nextSpawn:1500,cool:0,phase:'play',endT:0,hurt:-9999,onEnd};
+  function start(onEnd){s={t0:performance.now(),last:performance.now(),now:0,x:W/2,held:{L:false,R:false},shots:[],objs:[],fx:[],pops:[],lives:CFG.lives,nextSpawn:1500,laser:false,hum:0,phase:'play',endT:0,hurt:-9999,onEnd};
     beep(660,.08);setTimeout(()=>beep(990,.1),160);closeMenu();}
   function move(l,on){if(!s)return;s.held[l]=on;}
-  function fire(){if(!s||s.phase!=='play'||s.now<1200||s.now<s.cool)return;s.cool=s.now+CFG.cool;s.shots.push({x:s.x,y:WY-2});beep(1760,.03,'square',.03);}
+  function fire(on=true){if(!s)return;s.laser=on;if(on&&s.phase==='play')beep(1760,.04,'square',.03);}   // 가운데 버튼: 누르는 동안 레이저
   function burst(x,y,c,k){for(let i=0;i<k;i++){const a=Math.random()*6.28,v=15+Math.random()*35;s.fx.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,t:s.now,c});}}
   function pop(txt,x,y,c){s.pops.push({txt,x,y,c,t:s.now});}
   function finish(ok){if(s.phase!=='play')return;s.phase=ok?'clear':'fail';s.endT=s.now;
@@ -1458,15 +1458,16 @@ const MG3=(()=>{
     if(s.now>=s.nextSpawn){const kind=pickKind();s.objs.push({kind,x:8+Math.random()*(W-16),y:ROOM_Y+2,v:CFG.fall0+(CFG.fall1-CFG.fall0)*k+Math.random()*6,ph:Math.random()*6.28,sw:kind==='exit'?6+Math.random()*6:kind==='poison'?Math.random()*4:2,bx:0});
       s.objs[s.objs.length-1].bx=s.objs[s.objs.length-1].x;
       s.nextSpawn=s.now+(CFG.spawn0+(CFG.spawn1-CFG.spawn0)*k)*(.7+Math.random()*.6);}
-    for(const sh of s.shots)sh.y-=CFG.shotSpd*dt; s.shots=s.shots.filter(sh=>sh.y>ROOM_Y);
+    const beam=s.laser&&s.now>=1200;
+    if(beam&&s.now>=s.hum){s.hum=s.now+140;beep(1100+Math.random()*200,.03,'square',.015);}
     for(const o of s.objs){o.y+=o.v*dt;o.x=Math.max(5,Math.min(W-5,o.bx+Math.sin(s.now/700+o.ph)*o.sw));
-      for(const sh of s.shots){if(sh.dead||Math.abs(sh.x-o.x)>5||sh.y<o.y-5||sh.y>o.y+5)continue;sh.dead=true;o.dead=true;
+      if(beam&&o.y<WY&&Math.abs(o.x-s.x)<=CFG.laserW){o.dead=true;   // 레이저 줄에 있는 건 전부 소멸
         if(o.kind==='heart'){burst(o.x,o.y,'#ff8fbf',8);pop('OOPS',o.x,o.y,'#ff8fbf');beep(330,.08,'triangle',.05);}
-        else{burst(o.x,o.y,o.kind==='poison'?'#c9a4ff':'#3fd47a',12);beep(1320,.05,'square',.04);}break;}
+        else{burst(o.x,o.y,o.kind==='poison'?'#c9a4ff':'#3fd47a',12);beep(1320,.05,'square',.04);}}
       if(!o.dead&&o.y>=BOT){o.dead=true;
         if(o.kind==='heart'){if(s.lives<CFG.maxLives){s.lives++;pop('+1',o.x,BOT-6,'#ff8fbf');}[1320,1760].forEach((f,i)=>setTimeout(()=>beep(f,.07,'triangle',.06),i*80));}
         else{s.lives--;s.hurt=s.now;pop('-1',o.x,BOT-6,'#ff6b8a');beep(160,.18,'sawtooth',.05);if(s.lives<=0)finish(false);}}}
-    s.objs=s.objs.filter(o=>!o.dead);s.shots=s.shots.filter(sh=>!sh.dead);
+    s.objs=s.objs.filter(o=>!o.dead);
     if(s.phase==='play'&&s.now>=CFG.time+1200)finish(true);}
   function draw(){if(!s)return;
     r(0,ROOM_Y,W,ROOM_H,'#0d0c16');   // 골목 (플레로마 미니게임 배경)
@@ -1475,7 +1476,7 @@ const MG3=(()=>{
       r(lx-1,ROOM_Y,2,5,'#3a3846');r(lx-4,ROOM_Y+4,8,2,'#3a3846');r(lx-3,ROOM_Y+6,6,1,fl<1?'#a08850':'#ffe28c');}
     r(0,BOT,W,1,s.now-s.hurt<300?'#ff3b4f':'rgba(255,60,80,.6)');
     for(const o of s.objs){if(o.kind==='poison')bmp(POISON,o.x-3,o.y-4,PP);else if(o.kind==='exit')bmp(EXIT,o.x-4,o.y-4,EP);else bmp(HEART,o.x-3,o.y-3,HP);}
-    for(const sh of s.shots){r(sh.x-1,sh.y,3,3,'rgba(160,220,255,.5)');r(sh.x,sh.y-1,1,5,'#e8f6ff');}
+    if(s.laser&&s.phase==='play'&&s.now>=1200){const w=((s.now/60)|0)%2;r(s.x-2-w,ROOM_Y,5+w*2,WY-ROOM_Y,'rgba(160,220,255,.35)');r(s.x-1,ROOM_Y,3,WY-ROOM_Y,'rgba(220,245,255,.8)');r(s.x,ROOM_Y,1,WY-ROOM_Y,'#ffffff');}
     if(!(s.now-s.hurt<600&&((s.now/80|0)%2)))bmp(WAND,s.x-2,WY,WP);
     if(((s.now/150)|0)%2)r(s.x,WY-1,1,1,'#fff6c8');
     s.fx=s.fx.filter(p=>s.now-p.t<500);for(const p of s.fx){const q=(s.now-p.t)/1000;r(p.x+p.vx*q,p.y+p.vy*q,1,1,p.c);}
@@ -1650,10 +1651,10 @@ function btnC(){
 }
 function bind(id,fn){const el=document.getElementById(id), lane={bA:'L',bC:'R'}[id];
   el.addEventListener('pointerdown',e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(_){}el.classList.add('down');fn();});
-  ['pointerup','pointerleave','pointercancel'].forEach(ev=>el.addEventListener(ev,()=>{el.classList.remove('down');if(lane&&ev!=='pointerleave'){MG.release(lane);MG3.move(lane,false);}}));
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>el.addEventListener(ev,()=>{el.classList.remove('down');if(lane&&ev!=='pointerleave'){MG.release(lane);MG3.move(lane,false);}if(id==='bB'&&ev!=='pointerleave')MG3.fire(false);}));
   el.addEventListener('contextmenu',e=>e.preventDefault());}
 bind('bA',btnA);bind('bB',btnC);bind('bC',btnB);
-document.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='a'||k==='arrowleft'){MG.release('L');MG3.move('L',false);}if(k==='d'||k==='arrowdown'){MG.release('R');MG3.move('R',false);}});
+document.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='a'||k==='arrowleft'){MG.release('L');MG3.move('L',false);}if(k==='d'||k==='arrowdown'){MG.release('R');MG3.move('R',false);}if(k==='s'||k==='enter'||k==='arrowright')MG3.fire(false);});
 document.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('input,textarea,select'))return;   // 입력창에 글 쓸 땐 게임 버튼 X
   const k=e.key.toLowerCase(); if(e.repeat&&(st.mode==='mg'||st.mode==='mg3'))return;
   if(k==='a'||k==='arrowleft')btnA(); if(k==='d'||k==='arrowdown')btnB(); if(k==='s'||k==='enter'||k==='arrowright')btnC();});
