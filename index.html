@@ -291,7 +291,6 @@ const ACTS=[
   {id:'lnews',label:'신문 읽기',      room:'lhouse'},
   {id:'leat', label:'밥 먹기',        room:'lhouse'},
   {id:'lsleep',label:'같이 잠 자기',  room:'lhouse'},
-  {id:'linbox',label:'편지 읽기',     room:'lhouse'},    // 애인 편지 (받은 편지함)
 ];
 /* ---- 소지품 (4x3 = 12칸, 같은 아이템도 칸을 따로 차지) ---- */
 const INV_MAX=12;
@@ -736,7 +735,7 @@ const ICONS={
  room:['...#....','..###...','.#####..','#######.','.#...#..','.#.#.#..','.#.#.#..','........'],
 };
 const TOP=['book','news','sleep','eat'], BOT=['talk','move','pet','room'];
-const ICON_OF={lbook:'book',lnews:'news',leat:'eat',lsleep:'sleep',linbox:'talk',pbook:'book',pnews:'news',jbook:'book',jnews:'news',read:'book',pick:'book',leo:'talk',eli:'talk',call:'talk',think:'pet',cook:'eat',taste:'eat'};
+const ICON_OF={lbook:'book',lnews:'news',leat:'eat',lsleep:'sleep',pbook:'book',pnews:'news',jbook:'book',jnews:'news',read:'book',pick:'book',leo:'talk',eli:'talk',call:'talk',think:'pet',cook:'eat',taste:'eat'};
 function drawBars(t){
   R(ctx,0,0,W,ROOM_Y,'#fff4f9');R(ctx,0,ROOM_Y-1,W,1,'#e8b9d2');
   R(ctx,0,ROOM_Y+ROOM_H,W,H-ROOM_Y-ROOM_H,'#fff4f9');R(ctx,0,ROOM_Y+ROOM_H,W,1,'#e8b9d2');
@@ -904,7 +903,7 @@ function figure(who,t){   // 앞머리 레이어가 있는 캐릭터는 흔들�
     oc2x.setTransform(1,0,k*.8,1,-k*.8*Y0,0);oc2x.drawImage(imgs.juliaLockR,0,0);
     oc2x.setTransform(1,0,0,1,0,0);return oc2;}
   if(who==='lover'||who==='loverSleep'){   // 애인: 율리아처럼 옆머리(+포니테일)를 위쪽 고정으로 살랑살랑, 같이 잘 땐 루카스 잘 때처럼 느리게
-    const sl=who==='loverSleep', k=sl?.02*Math.sin(t/1000*2*Math.PI/3.4)+.005*Math.sin(t/1000*5.1):.032*Math.sin(t/1000*2*Math.PI/2.6)+.008*Math.sin(t/1000*4.3), Y0=80;
+    const sl=who==='loverSleep', k=sl?.02*Math.sin(t/1000*2*Math.PI/3.4)+.005*Math.sin(t/1000*5.1):.032*Math.sin(t/1000*2*Math.PI/2.6)+.008*Math.sin(t/1000*4.3), Y0=90;   // 율리아 크기에 맞춰 줄여서 옆머리 시작점이 더 아래
     oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(imgs[who],0,0);
     oc2x.setTransform(1,0,k,1,-k*Y0,0);oc2x.drawImage(imgs[who+'LockL'],0,0);
     oc2x.setTransform(1,0,k*.8,1,-k*.8*Y0,0);oc2x.drawImage(imgs[who+'LockR'],0,0);
@@ -1370,7 +1369,6 @@ function doAction(m){
   if(m.id==='lbook'||m.id==='lnews'){setMode(m.id);return;}   // 동료의 집: 애인이 읽어줌
   if(m.id==='leat'){setMode('eat');return;}
   if(m.id==='lsleep'){if(st.mode==='sleep'){setMode('idle');toast('잘 잤다.',1200);}else setMode('sleep');return;}
-  if(m.id==='linbox'){openSub('inbox');return;}
   if(m.id==='disguise'){st.niko=!st.niko;saveGame();setMode('pet');beep(st.niko?1760:660,.08);toast(st.niko?'✦ 니콜라우스로 변장했다.':'✦ 변장을 풀었다.',1600);return;}
   if(m.id==='bexplore'){   // 바덴 거리: 10% 레오나르드 → 바이에른 왕세자 방으로
     if(Math.random()<.1){st.leo=null;setMode('leo');st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[['바이에른으로 돌아가자.','레오나르드']],i:0,off:70,
@@ -1671,7 +1669,7 @@ function btnA(){
   if(st.menu==='rel'){st.menu='status';st.cur=1;renderMenu();beep(520,.06);return;}
   if(st.menu==='item'){st.menu='inv';st.cur=st.invSel|0;renderMenu();beep(520,.06);return;}
   if(st.menu==='letter'){st.menu='inbox';st.cur=Math.max(0,(st.inbox||[]).length-1-(st.mailSel|0));renderMenu();beep(520,.06);return;}
-  if(st.menu==='inbox'){const lh=st.room==='lhouse';st.menu=lh?'act':'mail';st.cur=lh?Math.max(0,menuItems().findIndex(x=>x.id==='linbox')):0;renderMenu();beep(520,.06);return;}   // 동료의 집에선 행동하기로
+  if(st.menu==='inbox'){st.menu='mail';st.cur=0;renderMenu();beep(520,.06);return;}
   if(st.menu==='mail'){st.menu='act';st.cur=0;renderMenu();beep(520,.06);return;}
   if(st.menu==='inv'){st.menu='status';st.cur=4;renderMenu();beep(520,.06);return;}
   if(st.menu==='shop'||st.menu==='acc'){const k=st.menu;st.menu='status';st.cur=k==='shop'?2:3;renderMenu();beep(520,.06);return;}
