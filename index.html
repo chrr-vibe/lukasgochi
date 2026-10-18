@@ -218,6 +218,10 @@ html,body{height:auto;min-height:100%}
     <div class="mrow"><button class="addbg" id="juliaOk">확인</button></div></div></div>
   <div class="modal" id="mailModal"><div class="mbox"><div class="mt" id="mailTitle">✉</div><div id="mailBody"></div>
     <div class="mrow"><button class="addbg" id="mailOk">확인</button><button class="addbg ghost" id="mailCancel">닫기</button></div></div></div>
+  <div class="modal" id="pwModal"><div class="mbox"><div class="mt">🔒 동료의 집</div><div class="bkhint">비밀번호를 눌러줘.</div>
+    <input id="pwIn" class="minput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" style="text-align:center;letter-spacing:8px">
+    <div class="mcount" id="pwMsg" style="text-align:center"></div>
+    <div class="mrow"><button class="addbg" id="pwOk">확인</button><button class="addbg ghost" id="pwNo">닫기</button></div></div></div>
   <div class="modal" id="capModal"><div class="mbox"><div class="mt">📷 capture</div><img id="capImg" alt="capture"><div class="mrow"><button class="addbg" id="capSave">이미지로 저장하기</button><button class="addbg ghost" id="capClose">닫기</button></div></div></div>
 </div>
 
@@ -236,13 +240,14 @@ const PIV=76, BX0=70, BX1=124;
 const imgs={}; let loaded=0,total=0;
 function load(k,src){total++;const im=new Image();im.onload=()=>loaded++;im.src=src;imgs[k]=im;}
 load('bang',SPR.bang); load('tail',SPR.tail); load('leo',SPR.leo); load('glasses',SPR.glasses); load('drunk',SPR.drunk); load('eli',SPR.eli); load('monocle',SPR.monocle); load('heart',SPR.heart); load('leoHome',SPR.leoHome); load('leoGlasses',SPR.leoGlasses); load('niko',SPR.niko); load('julia',SPR.julia); load('juliaLockL',SPR.juliaLockL); load('juliaLockR',SPR.juliaLockR); load('nikoBang',SPR.nikoBang); load('nikoMask',SPR.nikoMask); load('leoBook',SPR.leoBook); load('adr',SPR.adr); load('broHead',SPR.broHead); for(const k of ['heart','broHead','leoHome','adr']) load(k+'Bang',SPR[k+'Bang']); load('jerome',SPR.jerome); load('jeromeBang',SPR.jeromeBang); load('onesie',SPR.onesie); load('mask',SPR.mask); load('gloves',SPR.gloves); if(SPR.eras){load('eras',SPR.eras); if(SPR.erasBang) load('erasBang',SPR.erasBang);}
+for(const k of ['lover','loverLockL','loverLockR','loverSleep','loverSleepLockL','loverSleepLockR']) if(SPR[k]) load(k,SPR[k]);   // 동료의 집: 애인 (깨어 있을 때 / 같이 잘 때)
 for(const o in SPR.outfits) for(const k in SPR.outfits[o]) load(o+':'+k,SPR.outfits[o][k]);
 
 /* ================= data ================= */
 const PLACES={bed:'내 방',living:'거실',library:'도서관',park:'공원',kitchen:'주방',brother:'형의 방',dorm:'기숙사',
-  garden:'전정',hall:'그레이트 홀',nikolaus:'니콜라우스 방',prince:'왕세자 방',street:'거리',aliving:'거실',adrroom:'아드리안 방',bstreet:'바덴 거리',bprince:'대공자 방'};
+  garden:'전정',hall:'그레이트 홀',nikolaus:'니콜라우스 방',prince:'왕세자 방',street:'거리',aliving:'거실',adrroom:'아드리안 방',bstreet:'바덴 거리',bprince:'대공자 방',lhouse:'동료의 집'};
 // 지역: 우리 동네 / 바이에른 궁 (이동하기는 같은 지역 안에서만, 다른 지역은 지도로)
-const REGION_OF={bed:'home',living:'home',library:'home',park:'home',kitchen:'home',brother:'home',dorm:'home',garden:'bavaria',hall:'bavaria',nikolaus:'bavaria',prince:'bavaria',street:'prussia',aliving:'anhalt',adrroom:'anhalt',bstreet:'baden',bprince:'baden'};
+const REGION_OF={bed:'home',living:'home',library:'home',park:'home',kitchen:'home',brother:'home',dorm:'home',garden:'bavaria',hall:'bavaria',nikolaus:'bavaria',prince:'bavaria',street:'prussia',aliving:'anhalt',adrroom:'anhalt',bstreet:'baden',bprince:'baden',lhouse:'home'};
 const HIDDEN_PLACES=['brother','dorm'];
 const FAME_MAX=10, FAME_DECAY=24*60*60*1000;   // 명성: 니콜라우스 방 해금 뒤 플레로마 소탕마다 +1, 실제 24시간마다 -1
 const PL_UNLOCK=5, ANHALT_MEET=10, PL_CHANCE=.3;   // 플레로마 5번 소탕 → 니콜라우스 방 / 아드리안 10번 만나면 → 안할트
@@ -282,6 +287,11 @@ const ACTS=[
   {id:'taste',label:'시식하기',       room:'kitchen'},
   {id:'pick', label:'책 고르기',      room:'library'},
   {id:'read', label:'독서하기',       room:'library'},
+  {id:'lbook',label:'책 읽기',        room:'lhouse'},    // 동료의 집: 애인이 읽어줌
+  {id:'lnews',label:'신문 읽기',      room:'lhouse'},
+  {id:'leat', label:'밥 먹기',        room:'lhouse'},
+  {id:'lsleep',label:'같이 잠 자기',  room:'lhouse'},
+  {id:'linbox',label:'편지 읽기',     room:'lhouse'},    // 애인 편지 (받은 편지함)
 ];
 /* ---- 소지품 (4x3 = 12칸, 같은 아이템도 칸을 따로 차지) ---- */
 const INV_MAX=12;
@@ -357,7 +367,21 @@ function R(c,x,y,w,h,col){c.fillStyle=col;c.fillRect(x|0,y|0,w|0,h|0);}
 function bitmap(c,rows,x,y,col){c.fillStyle=col;rows.forEach((r,j)=>{for(let i=0;i<r.length;i++)if(r[i]==='#')c.fillRect(x+i,y+j,1,1);});}
 
 /* ================= backgrounds ================= */
+function recolorRoom(c){   // 동료의 집: 내 방 그림에서 보라·분홍 계열만 색을 돌림 (나무색·하늘색은 그대로)
+  const x=c.getContext('2d'), id=x.getImageData(0,0,c.width,c.height), d=id.data;
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i]/255,g=d[i+1]/255,b=d[i+2]/255, mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, dl=mx-mn;
+    if(dl<.04) continue;
+    let h=mx===r?((g-b)/dl+6)%6:mx===g?(b-r)/dl+2:(r-g)/dl+4; h*=60;
+    if(h<240||h>350) continue;
+    h=(h-130+360)%360; const sat=dl/(1-Math.abs(2*l-1)), C=(1-Math.abs(2*l-1))*sat, X=C*(1-Math.abs((h/60)%2-1)), m=l-C/2;
+    const [r1,g1,b1]=h<60?[C,X,0]:h<120?[X,C,0]:h<180?[0,C,X]:h<240?[0,X,C]:h<300?[X,0,C]:[C,0,X];
+    d[i]=(r1+m)*255; d[i+1]=(g1+m)*255; d[i+2]=(b1+m)*255;
+  }
+  x.putImageData(id,0,0); return c;
+}
 function makeRoom(room,lampOn,night){
+  if(room==='lhouse') return recolorRoom(makeRoom('bed',lampOn,night));
   const c=document.createElement('canvas');c.width=W;c.height=ROOM_H;const x=c.getContext('2d');
   if(room==='bed'){
     // wall
@@ -712,7 +736,7 @@ const ICONS={
  room:['...#....','..###...','.#####..','#######.','.#...#..','.#.#.#..','.#.#.#..','........'],
 };
 const TOP=['book','news','sleep','eat'], BOT=['talk','move','pet','room'];
-const ICON_OF={pbook:'book',pnews:'news',jbook:'book',jnews:'news',read:'book',pick:'book',leo:'talk',eli:'talk',call:'talk',think:'pet',cook:'eat',taste:'eat'};
+const ICON_OF={lbook:'book',lnews:'news',leat:'eat',lsleep:'sleep',linbox:'talk',pbook:'book',pnews:'news',jbook:'book',jnews:'news',read:'book',pick:'book',leo:'talk',eli:'talk',call:'talk',think:'pet',cook:'eat',taste:'eat'};
 function drawBars(t){
   R(ctx,0,0,W,ROOM_Y,'#fff4f9');R(ctx,0,ROOM_Y-1,W,1,'#e8b9d2');
   R(ctx,0,ROOM_Y+ROOM_H,W,H-ROOM_Y-ROOM_H,'#fff4f9');R(ctx,0,ROOM_Y+ROOM_H,W,1,'#e8b9d2');
@@ -724,7 +748,7 @@ function drawBars(t){
     if(id===hl) R(ctx,x-2,y-2,12,12,blink?'#ffd0e6':'#ff8fbf');
     let col=(id===hl)?'#ffffff':'#8d6f9e';
     const m=MENU.find(m=>m.id===id); if(m&&!avail(m)&&id!==hl) col='#dcc7e2';
-    if(id==='room') col={bed:'#b493e6',living:'#4fb08f',library:'#9a6a48',park:'#5fbf6a',kitchen:'#f0a050'}[st.room];
+    if(id==='room') col={lhouse:'#5fb6a6',bed:'#b493e6',living:'#4fb08f',library:'#9a6a48',park:'#5fbf6a',kitchen:'#f0a050'}[st.room];
     bitmap(ctx,ICONS[id],x,y,col);
   });
   draw(TOP,2); draw(BOT,ROOM_Y+ROOM_H+2);
@@ -879,6 +903,12 @@ function figure(who,t){   // 앞머리 레이어가 있는 캐릭터는 흔들�
     oc2x.setTransform(1,0,k,1,-k*Y0,0);oc2x.drawImage(imgs.juliaLockL,0,0);
     oc2x.setTransform(1,0,k*.8,1,-k*.8*Y0,0);oc2x.drawImage(imgs.juliaLockR,0,0);
     oc2x.setTransform(1,0,0,1,0,0);return oc2;}
+  if(who==='lover'||who==='loverSleep'){   // 애인: 율리아처럼 옆머리(+포니테일)를 위쪽 고정으로 살랑살랑, 같이 잘 땐 루카스 잘 때처럼 느리게
+    const sl=who==='loverSleep', k=sl?.02*Math.sin(t/1000*2*Math.PI/3.4)+.005*Math.sin(t/1000*5.1):.032*Math.sin(t/1000*2*Math.PI/2.6)+.008*Math.sin(t/1000*4.3), Y0=80;
+    oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(imgs[who],0,0);
+    oc2x.setTransform(1,0,k,1,-k*Y0,0);oc2x.drawImage(imgs[who+'LockL'],0,0);
+    oc2x.setTransform(1,0,k*.8,1,-k*.8*Y0,0);oc2x.drawImage(imgs[who+'LockR'],0,0);
+    oc2x.setTransform(1,0,0,1,0,0);return oc2;}
   if(!imgs[who+'Bang']) return imgs[who];
   oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(imgs[who],0,0);
   swayBang(oc2x,imgs[who+'Bang'],bangAmp(t+900,false));   // 루카스와 박자 살짝 다르게
@@ -924,6 +954,12 @@ function drawLeoHome(x,t){   // 방에 함께 있는 레오나르드 (신문 읽
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure('leoHome',t),Math.round(x),CHY,CH,CH);
   if(st.mode==='news') drawLeoReading(x,'news');
 }
+function drawLover(x,t){   // 동료의 집: 늘 있는 애인 (책·신문은 레오나르드처럼 안경 쓰고 읽어줌 / 같이 잘 땐 자는 그림)
+  const sl=st.mode==='sleep', who=sl&&imgs.loverSleep.naturalWidth?'loverSleep':'lover';
+  if(!imgs[who].naturalWidth) return;
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure(who,t),Math.round(x),CHY,CH,CH);
+  if(st.mode==='lbook'||st.mode==='lnews') drawLeoReading(x,st.mode==='lnews'?'news':'book');
+}
 function drawLeoReading(x,kind){   // 레오나르드: 안경 + 신문/책
   x=Math.round(x);ctx.drawImage(imgs.leoGlasses,x,CHY,CH,CH);
   const nx=x+35, ny=CHY+60;
@@ -952,12 +988,12 @@ function fxSweat(t){
     ctx.globalAlpha=1;
   });
 }
-function fxZzz(t){
+function fxZzz(t,dx=0){
   const Z5=['#####','...#.','..#..','.#...','#####'], Z3=['###','.#.','###'];
   for(let i=0;i<3;i++){
     const ph=((t/1000)*.35+i/3)%1; const [x,y]=P(470,300);
     ctx.globalAlpha=ph<.75?1:1-(ph-.75)/.25;
-    bitmap(ctx,ph>.45?Z5:Z3,(x+ph*12+Math.sin(ph*6)*2)|0,(y-ph*22)|0,'#6f7fe0');
+    bitmap(ctx,ph>.45?Z5:Z3,(x+dx+ph*12+Math.sin(ph*6)*2)|0,(y-ph*22)|0,'#6f7fe0');
     ctx.globalAlpha=1;
   }
 }
@@ -1097,7 +1133,8 @@ function frame(now){
   else if(!st.hungerAsked && st.mode==='idle' && !st.menu && !st.map && !st.leo && !st.script && !st.trans && !st.bro && !st.inf && !st.dead){st.hungerAsked=true;saveGame();eventModal.classList.add('show');}
   // ---- 자동 해제 ----
   const el=t-st.modeT;
-  if((st.mode==='pbook'||st.mode==='pnews') && el>TEST.timed){ const nw=st.mode==='pnews'; setMode('talk'); say(nw?'레오나르드가 읽어줬다. 뭔가 빼고 얘기해주는 듯 한데...':'레오나르드가 읽어줬다.'); }
+  if((st.mode==='lbook'||st.mode==='lnews') && el>TEST.timed){ setMode('talk'); say('그가 다 읽어주었다. 그의 발음이 듣기 좋다.'); }   // 동료의 집: 애인이 읽어줌
+  else if((st.mode==='pbook'||st.mode==='pnews') && el>TEST.timed){ const nw=st.mode==='pnews'; setMode('talk'); say(nw?'레오나르드가 읽어줬다. 뭔가 빼고 얘기해주는 듯 한데...':'레오나르드가 읽어줬다.'); }
   else if(['news','book','read'].includes(st.mode) && el>TEST.timed){ const byLeo=st.mode==='news'&&withLeoNow(); setMode('talk'); say(st.room==='bprince'?'율리아는 역시 읽어주지 않는구나.':byLeo?'레오나르드가 신문을 읽어주었다.':'유익했다.'); }
   else if(st.mode==='think' && el>TEST.timed && st.room==='garden'){ setMode('talk'); say('이런 걸 보고 자라서 그렇게 생겼나?'); }
   else if(st.mode==='think' && el>TEST.timed && isNight() && st.room==='park' && Math.random()<ROB_CHANCE){   // 밤 공원: 불량배에게 골드 전부
@@ -1105,7 +1142,7 @@ function frame(now){
   else if(st.mode==='think' && el>TEST.timed){ setMode('talk'); if(Math.random()<.5){st.gold+=100;saveGame();say('✦ 사색하다 100골드를 주웠다! (+100G)','');} else say('좋은 사색이었다.'); }
   else if(st.mode==='cook' && el>3000){ const ok=Math.random()<COOK_OK; st.cookOk=ok?(st.cookOk|0)+1:0; const glove=st.cookOk>=GLOVE_STREAK&&!st.glovesOk; if(glove)st.glovesOk=true; st.lastCook=ok?'ok':'fail'; const cake=st.wear.bday; let cakeIn=false; if(ok&&cake)cakeIn=invAdd('cake'); else if(ok)st.gold+=100; st.pickFace=ok?'smile':'idle'; setMode('pick'); const chef=st.cookStreak>=CHEF_STREAK&&!st.chefOk; if(chef)st.chefOk=true; say((ok?(cake?(cakeIn?'✦ 케이크를 만들었다! (소지품)':'✦ 케이크를 만들었지만 소지품이 가득 찼다…'):'✦ 성공했다! (+100G)'):'✦ 실패했다…')+(chef?' ✦ 요리사 모자 해금! (상점)':'')+(glove?' ✦ 고무장갑 해금! (상점)':''),''); saveGame(); }
   else if(st.mode==='taste' && el>2500){ const lc=st.lastCook; setMode('talk'); say(lc==='ok'?'나도 이제 요리왕이다.':lc==='fail'?'레오나르드는 먹어줄까?':'…아직 만든 게 없잖아.'); }
-  else if(st.mode==='eat' && el>TEST.timed){ setMode('talk'); say('배부르다.'); }
+  else if(st.mode==='eat' && el>TEST.timed){ setMode('talk'); say(st.room==='lhouse'?'그가 먹여주었다... 내 손발이 보이지 않는 모양이다.':'배부르다.'); }
   else if(st.mode==='ceat' && el>2500){ setMode('talk'); say('✦ 케이크를 먹었다. (허기 +3칸)',''); }
   if(st.menu==='status' && (t/500|0)!==st._sTick){st._sTick=t/500|0; renderMenu();}
   if(st.mode==='pet' && t-st.modeT>1800) setMode('idle');
@@ -1115,17 +1152,17 @@ function frame(now){
 
   // ---- 위치 ----
   const leoHome=st.withLeo && st.room==='bed' && !st.leo;
-  const princeLeo=st.room==='prince'&&!st.leo, juliaHere=st.room==='bprince'&&!st.leo, adrHere=((st.bro||st.room==='brother') && !st.leo && !st.broAway) || (st.room==='adrroom'&&st.adrHere&&!st.leo), erasHere=(st.inf||st.room==='dorm') && !st.leo;
-  const target = ((st.leo && st.leo.phase!=='exit') || leoHome || adrHere || erasHere || princeLeo || juliaHere) ? -PAIR : 0;
+  const princeLeo=st.room==='prince'&&!st.leo, juliaHere=st.room==='bprince'&&!st.leo, adrHere=((st.bro||st.room==='brother') && !st.leo && !st.broAway) || (st.room==='adrroom'&&st.adrHere&&!st.leo), erasHere=(st.inf||st.room==='dorm') && !st.leo, loverHere=st.room==='lhouse'&&!st.leo;
+  const target = ((st.leo && st.leo.phase!=='exit') || leoHome || adrHere || erasHere || princeLeo || juliaHere || loverHere) ? -PAIR : 0;
   if(st.room==='prince'&&st.rel<REL_MAX){st.rel=REL_MAX;st.relT=DN;saveGame();}   // 왕세자 방: 관계 무조건 최대
   st.lucX += (target-st.lucX)*.25; if(Math.abs(target-st.lucX)<.3) st.lucX=target;
 
   // ---- 그리기 ----
   ctx.imageSmoothingEnabled=false;
-  const night=isNight(); ctx.drawImage(bg(st.room,st.mode!=='sleep',night&&(st.room==='park'||st.room==='dorm'||st.room==='bed'||st.room==='street'||st.room==='bstreet')),0,ROOM_Y);
+  const night=isNight(); ctx.drawImage(bg(st.room,st.mode!=='sleep',night&&(st.room==='park'||st.room==='dorm'||st.room==='bed'||st.room==='lhouse'||st.room==='street'||st.room==='bstreet')),0,ROOM_Y);
   if(night){ctx.fillStyle=NIGHT_DIM;ctx.fillRect(0,ROOM_Y,W,ROOM_H);}   // 밤: 배경만 어둡게 (캐릭터는 원래 밝기)
   ctx.save();ctx.beginPath();ctx.rect(0,ROOM_Y,W,ROOM_H);ctx.clip();
-  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(juliaHere){ctx.imageSmoothingEnabled=true;ctx.drawImage(figure(JULIA(),t),CHX+PAIR,CHY,CH,CH);} else if(princeLeo){ctx.imageSmoothingEnabled=true;ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH);if(st.mode==='pbook'||st.mode==='pnews')drawLeoReading(CHX+PAIR,st.mode==='pnews'?'news':'book');} else if(adrHere&&st.leoSwap) ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t);
+  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(juliaHere){ctx.imageSmoothingEnabled=true;ctx.drawImage(figure(JULIA(),t),CHX+PAIR,CHY,CH,CH);} else if(princeLeo){ctx.imageSmoothingEnabled=true;ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH);if(st.mode==='pbook'||st.mode==='pnews')drawLeoReading(CHX+PAIR,st.mode==='pnews'?'news':'book');} else if(adrHere&&st.leoSwap) ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t); else if(loverHere) drawLover(CHX+PAIR,t);
   drawLucas(t,CHX+st.lucX);
   const face=spriteKey(t).split(':')[1];
   if(face==='cry') fxTears(t);
@@ -1134,7 +1171,7 @@ function frame(now){
   if(st.mode==='eat') fxCrumbs(t);
   if(st.mode==='think') fxThink(t);
   if(st.mode==='cook') fxCook(t);
-  if(st.mode==='sleep'){ctx.fillStyle='rgba(30,26,80,.42)';ctx.fillRect(0,ROOM_Y,W,ROOM_H);fxZzz(t);}
+  if(st.mode==='sleep'){ctx.fillStyle='rgba(30,26,80,.42)';ctx.fillRect(0,ROOM_Y,W,ROOM_H);fxZzz(t);if(loverHere)fxZzz(t+1400,PAIR-st.lucX);}   // 같이 잘 땐 애인도 쿨쿨
   if(MG.active()){MG.update(t);MG.draw();}
   if(MG3.active()){MG3.update(t);MG3.draw();}
   if(MG2.active()) MG2.draw(t);
@@ -1187,7 +1224,7 @@ function menuItems(){
   if(st.menu==='choice') return st.choice?st.choice.opts.map(([id,label])=>({id,label})):[{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
   if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
-  if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()).map(k=>({id:'go',to:k})),{id:'map',label:'다른 지역'}];
+  if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()).map(k=>({id:'go',to:k,tag:k==='lhouse'&&!st.loverOk?'🔒':''})),{id:'map',label:'다른 지역'}];
   if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'}];
   if(st.menu==='rel') return [{id:'relback',label:'돌아가기'}];
   if(st.menu==='inv') return [...Array(INV_MAX)].map((_,i)=>({id:'slot',i}));
@@ -1219,7 +1256,7 @@ function _renderMenu(){
   const title={choice:st.choice?st.choice.title:'잠입할까?',root:'무엇을 할까?',act:'행동하기',move:'어디로 갈까?',shop:'상점 · '+st.gold+'G',acc:'악세사리',item:(ITEMS[(st.inv||[])[st.invSel]]||{}).name,mail:'편지 관리',inbox:'받은 편지',letter:((st.inbox||[])[st.mailSel]||{}).from}[st.menu];
   menuEl.innerHTML=`<div class="ttl"><span>♥ ${title}</span><span>${PLACES[st.room]}</span></div>`+items.map((m,i)=>{
     const off=!avail(m);
-    let label=m.label; if(m.id==='sleep'&&st.mode==='sleep') label='일어나기';
+    let label=m.label; if((m.id==='sleep'||m.id==='lsleep')&&st.mode==='sleep') label='일어나기';
     if(m.id==='go') label=withRo(PLACES[m.to])+' 가기';
     const tag=off?placeTag(m):m.id==='call'&&st.withLeo?'함께하는 중':(m.tag||'');
     return `<div class="it ${i===st.cur?'sel':''} ${off?'off':''}"><span class="cur">▶</span>${label}${tag?`<span class="tag">${tag}</span>`:''}</div>`;
@@ -1230,7 +1267,7 @@ let typer=null,toastTO=null;
 function say(text,name='루카스'){
   clearInterval(typer);clearTimeout(toastTO);toastTO=null;
   dlgEl.style.display='block';nmEl.style.display=name?'block':'none';nmEl.textContent=name;
-  nmEl.style.background=(name==='레오나르드'||name==='에라스미오스')?'#ffe27a':name==='제롬'?'#efdcbc':name==='불량배'?'#c9c4d6':name==='엘리아스'?'#bfe3ff':name==='아드리안'?'#ffd58a':name==='율리아'?'#ffb39a':'#7fe0c3';
+  nmEl.style.background=(name==='레오나르드'||name==='에라스미오스')?'#ffe27a':name==='제롬'?'#efdcbc':name==='불량배'?'#c9c4d6':name==='엘리아스'?'#bfe3ff':name==='아드리안'?'#ffd58a':name==='율리아'?'#ffb39a':name==='애인'?'#ff9a8a':'#7fe0c3';
   dtext.textContent='';let i=0;st.dlg={done:false};
   typer=setInterval(()=>{dtext.textContent=text.slice(0,++i);if(i%2)beep((name==='레오나르드'||name==='에라스미오스')?900:name==='엘리아스'?760:name==='아드리안'?640:1200,.02,'square',.02);
     if(i>=text.length){clearInterval(typer);st.dlg.done=true;st.dlg.doneT=performance.now();}},55);
@@ -1269,6 +1306,7 @@ function doAction(m){
       const [a,b]=INF_TALK[Math.random()*INF_TALK.length|0];st.script={i:0,lines:[[a,'제롬'],[b,'에라스미오스']],after:()=>setMode('idle')};say(a,'제롬');return;}
     if(m.id==='talk'&&st.bro){closeMenu();beep(1320,.08);setMode('talk');say('루카. 누구와 말하는 거야?','아드리안');return;}   // 루카스는 말을 못 함
     if(m.id==='talk'&&st.room==='bprince'){closeMenu();beep(1320,.08);setMode('talk');say('✦ 율리아와 유익한 대화를 했다.','');return;}   // 대공자 방 대화하기
+    if(m.id==='talk'&&st.room==='lhouse'){closeMenu();beep(1320,.08);setMode('talk');say('그는 자꾸 낯 간지러운 말만 한다.');return;}   // 동료의 집 대화하기
     if(m.id==='talk'&&st.room==='prince'){closeMenu();beep(1320,.08);setMode('talk');say('✦ 레오나르드와 유익한 시간을 보냈다.','');return;}   // 왕세자 방 대화하기
     if(m.id==='talk'&&st.withLeo&&st.room==='bed'&&(st.wear.bday||st.wear.eyemask)){closeMenu();beep(1320,.08);setMode('leo');   // 방에 부른 레오나르드: 악세사리별 대사
       const opts=[];if(st.wear.bday)opts.push([['오늘은 내가 네게 다 맞출게.','레오나르드']]);
@@ -1305,6 +1343,7 @@ function doAction(m){
   if(m.id==='go'&&isLocked(m.to)){beep(220,.15);toast('아직 들어갈 수 없어.');return;}
   if(m.id==='go'&&nikoBare()&&!NIKO_BARE.includes(m.to)){beep(220,.15);toast('마스크를 써야 갈 수 있어.');return;}
   if(m.id==='map'){closeMenu();beep(990,.06);st.map={cur:Math.max(0,MAP_NODES.findIndex(n=>n.id===regionNow())),t0:performance.now()};return;}
+  if(m.id==='go'&&m.to==='lhouse'&&!st.loverOk){closeMenu();beep(990,.05);pwOpen();return;}   // 동료의 집: 처음 한 번만 비밀번호
   if(m.id==='go'){st.cookStreak=0;closeMenu();beep(1320,.08);setMode('idle');st.leo=null;if(st.withLeo){st.withLeo=false;saveGame();}st.trans=.01;st.transTo=m.to;return;}
   // ---- actions ----
   if(m.id==='sleep'&&inRoom(m)&&st.niko&&st.mode!=='sleep'){beep(220,.15);toast('변장 중엔 잘 수 없어.');return;}
@@ -1328,6 +1367,10 @@ function doAction(m){
     else{setMode('talk');say('…아무도 오지 않았다.','');}
     return;}
   if(m.id==='pbook'||m.id==='pnews'){setMode(m.id);return;}
+  if(m.id==='lbook'||m.id==='lnews'){setMode(m.id);return;}   // 동료의 집: 애인이 읽어줌
+  if(m.id==='leat'){setMode('eat');return;}
+  if(m.id==='lsleep'){if(st.mode==='sleep'){setMode('idle');toast('잘 잤다.',1200);}else setMode('sleep');return;}
+  if(m.id==='linbox'){openSub('inbox');return;}
   if(m.id==='disguise'){st.niko=!st.niko;saveGame();setMode('pet');beep(st.niko?1760:660,.08);toast(st.niko?'✦ 니콜라우스로 변장했다.':'✦ 변장을 풀었다.',1600);return;}
   if(m.id==='bexplore'){   // 바덴 거리: 10% 레오나르드 → 바이에른 왕세자 방으로
     if(Math.random()<.1){st.leo=null;setMode('leo');st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[['바이에른으로 돌아가자.','레오나르드']],i:0,off:70,
@@ -1580,10 +1623,12 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
   // 주기: 옆에 레오나르드/아드리안이 있을 때만
   const leoBy=withLeoNow()||(st.room==='prince'&&!st.leo), adrBy=(st.bro&&st.room==='brother'&&!st.broAway)||(st.room==='adrroom'&&st.adrHere);
   const juliaBy=st.room==='bprince'&&!st.leo;   // 대공자 방: 율리아
-  if(!leoBy&&!adrBy&&!juliaBy){closeMenu();beep(220,.15);toast('줄 사람이 없다.');return;}
+  const loverBy=st.room==='lhouse'&&!st.leo;    // 동료의 집: 애인
+  if(!leoBy&&!adrBy&&!juliaBy&&!loverBy){closeMenu();beep(220,.15);toast('줄 사람이 없다.');return;}
   closeMenu();beep(1320,.08);take();setMode('leo');
   let lines;
-  if(juliaBy){lines=[['바덴에 영원히 있어줘.','율리아'],['그런 소리가 나와?','루카스'],['그 대가 아니야?','율리아']];}
+  if(loverBy){lines=[['루카 당신이 한 거예요? 다음엔 내가 해줄게요.','애인'],['그는 상대를 위한 말을 할 줄 안다.','루카스']];}
+  else if(juliaBy){lines=[['바덴에 영원히 있어줘.','율리아'],['그런 소리가 나와?','루카스'],['그 대가 아니야?','율리아']];}
   else if(leoBy){const gm=gameMin(), bday=gm>=17*60+23&&gm<=17*60+25;   // 오후 5:23~5:25: 레오나르드 생일
     if(bday){st.rel=REL_MAX;st.relT=Date.now();lines=[['루카스. 기억해줬구나. 감동이야.','레오나르드'],['.......','루카스']];}
     else{st.rel=Math.max(0,st.rel-1);lines=[['왕세자 시해는 중죄야.','레오나르드'],['뱉어. 뱉어. 안 줘.','루카스'],['✦ 레오나르드와의 관계가 1 감소했다.','']];}}   // 왕세자 방에선 바로 다시 차지만 알림은 띄움
@@ -1626,7 +1671,7 @@ function btnA(){
   if(st.menu==='rel'){st.menu='status';st.cur=1;renderMenu();beep(520,.06);return;}
   if(st.menu==='item'){st.menu='inv';st.cur=st.invSel|0;renderMenu();beep(520,.06);return;}
   if(st.menu==='letter'){st.menu='inbox';st.cur=Math.max(0,(st.inbox||[]).length-1-(st.mailSel|0));renderMenu();beep(520,.06);return;}
-  if(st.menu==='inbox'){st.menu='mail';st.cur=0;renderMenu();beep(520,.06);return;}
+  if(st.menu==='inbox'){const lh=st.room==='lhouse';st.menu=lh?'act':'mail';st.cur=lh?Math.max(0,menuItems().findIndex(x=>x.id==='linbox')):0;renderMenu();beep(520,.06);return;}   // 동료의 집에선 행동하기로
   if(st.menu==='mail'){st.menu='act';st.cur=0;renderMenu();beep(520,.06);return;}
   if(st.menu==='inv'){st.menu='status';st.cur=4;renderMenu();beep(520,.06);return;}
   if(st.menu==='shop'||st.menu==='acc'){const k=st.menu;st.menu='status';st.cur=k==='shop'?2:3;renderMenu();beep(520,.06);return;}
@@ -1913,13 +1958,13 @@ function saveGame(){
   if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
-      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,badenOk:st.badenOk,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,eyemaskOk:st.eyemaskOk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,withLeo:st.withLeo,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
+      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,badenOk:st.badenOk,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,eyemaskOk:st.eyemaskOk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,withLeo:st.withLeo,loverOk:st.loverOk,loverMailT:st.loverMailT,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
   }catch(e){}
 }
 function loadGame(){
   try{
     const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return;
-    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','badenOk','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','eyemaskOk','sleepStart','rel','relT','withLeo']) if(d[k]!==undefined) st[k]=d[k];
+    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','badenOk','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','eyemaskOk','sleepStart','rel','relT','withLeo','loverOk','loverMailT']) if(d[k]!==undefined) st[k]=d[k];
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
@@ -1928,11 +1973,12 @@ function loadGame(){
     if((st.fame|0)>=FAME_MAX) st.letterOk=true;   // 이미 산 생일 꼬깔은 해금 상태 유지
     if(REGION_OF[st.room]==='anhalt'&&(st.adrMeet|0)<ANHALT_MEET) st.room='bed';
     if(REGION_OF[st.room]==='baden'&&!st.badenOk) st.room='bed';
+    if(st.room==='lhouse'&&!st.loverOk) st.room='bed';
     st.poison=st.poison===true?1:(st.poison|0);
     if(!SPR.outfits[st.outfit]) st.outfit='basic';
     customBgURL=localStorage.getItem(SAVE_KEY+':bg');
     if(st.bg.type==='custom'&&!customBgURL) st.bg={type:'preset',i:0};
-    if(d.sleeping && (st.room==='bed'||st.room==='nikolaus') && !st.niko){st.mode='sleep';}
+    if(d.sleeping && (st.room==='bed'||st.room==='nikolaus'||st.room==='lhouse') && !st.niko){st.mode='sleep';}
   }catch(e){}
 }
 
@@ -2134,6 +2180,37 @@ function mailForm(kind){
   mailModal.classList.add('show');
 }
 document.getElementById('mailCancel').onclick=()=>mailModal.classList.remove('show');
+/* ---- 동료의 집: 비밀번호 (한 번 맞히면 그 뒤론 바로) + 애인 편지 (해금 뒤 현실 1시간마다) ---- */
+const LOVER_PW='1119', LOVER_MAIL_MS=60*60*1000, LOVER_UNREAD_MAX=10;
+const LOVER_LETTERS=['사랑해','보고 싶어','언제 오는 거야?','네가 좋아하는 스튜 해뒀어.','꽃을 사뒀는데 한 번 봐줄래?',
+  '오늘 하루는 어땠어?','밥은 챙겨 먹었어? 안 먹었으면 내가 먹여줄게.','네 생각 하느라 책이 한 장도 안 넘어가.','창밖에 비가 와. 우산은 챙겼어?','침대 한쪽이 너무 넓어.',
+  '오늘 읽어줄 책 골라뒀어. 와서 들어줘.','잘 자. 꿈에서 만나.','문 비밀번호 잊지 마. 언제든 들어와.','네가 웃던 얼굴이 자꾸 떠올라.','차 끓여뒀어. 식기 전에 와.',
+  '오늘도 수고했어, 루카.','보고 싶어서 편지를 또 써.','네 목소리가 듣고 싶어.','안경을 새로 맞췄어. 어울리는지 봐줘.','내일도, 모레도 사랑해.'];
+const pwModal=document.getElementById('pwModal'), pwIn=document.getElementById('pwIn'), pwMsg=document.getElementById('pwMsg');
+function pwOpen(){pwIn.value='';pwMsg.textContent='';pwModal.classList.add('show');setTimeout(()=>{try{pwIn.focus();}catch(e){}},50);}
+function pwTry(){
+  if(pwIn.value.trim()!==LOVER_PW){beep(220,.15);pwMsg.textContent='비밀번호가 틀렸어.';pwIn.value='';return;}
+  pwModal.classList.remove('show');try{pwIn.blur();}catch(e){}
+  st.loverOk=true;st.loverMailT=Date.now();saveGame();
+  beep(1320,.08);setTimeout(()=>beep(1760,.1),90);
+  st.cookStreak=0;setMode('idle');st.leo=null;if(st.withLeo){st.withLeo=false;saveGame();}st.trans=.01;st.transTo='lhouse';
+  toast('✦ 문이 열렸다.',1600);
+}
+document.getElementById('pwOk').onclick=pwTry;
+pwIn.addEventListener('keydown',e=>{if(e.key==='Enter')pwTry();});
+document.getElementById('pwNo').onclick=()=>{pwModal.classList.remove('show');try{pwIn.blur();}catch(e){}};
+function loverMailTick(){   // 현실 1시간마다 애인 편지 (로컬 · 오프라인도 OK) — 안 읽은 게 많이 쌓이면 잠깐 멈춤
+  if(!st.loverOk) return;
+  const now=Date.now();
+  if(!st.loverMailT){st.loverMailT=now;saveGame();return;}
+  if(now-st.loverMailT<LOVER_MAIL_MS) return;
+  st.inbox=st.inbox||[];
+  let n=Math.min(Math.floor((now-st.loverMailT)/LOVER_MAIL_MS),3), got=0;   // 오래 비웠으면 최대 3통까지 한꺼번에
+  while(n-->0 && st.inbox.filter(m=>m.from==='애인'&&!m.read).length<LOVER_UNREAD_MAX){
+    st.inbox.push({id:'npc_lover_'+now+'_'+got,from:'애인',text:LOVER_LETTERS[Math.random()*LOVER_LETTERS.length|0],t:now,read:false});got++;}
+  st.loverMailT=now;saveGame();
+  if(got&&st.mode==='idle'&&!st.menu&&!st.script&&!st.leo&&!st.map&&!st.dlg) toast('✉ 애인에게서 편지가 왔다.',1800);
+}
 const juliaModal=document.getElementById('juliaModal');
 document.getElementById('juliaOk').onclick=()=>{juliaModal.classList.remove('show');juliaEvent();};
 
@@ -2142,6 +2219,8 @@ else{let seen=null;try{seen=localStorage.getItem(SAVE_KEY+':note');}catch(e){} i
 setTimeout(()=>{try{fbStart().then(()=>fbCheckMail(true));}catch(e){}},1500);   // 시작: 온라인이면 로그인·코드 생성·편지 확인
 setInterval(()=>{try{npcMailTick();fbCheckMail(true);}catch(e){}},MAIL_CHECK_MS);   // 켜져 있는 동안 1시간마다
 setInterval(()=>{try{npcMailTick();}catch(e){}},60*1000);
+setInterval(()=>{try{loverMailTick();}catch(e){}},60*1000);   // 애인 편지 (1분마다 확인)
+setTimeout(()=>{try{loverMailTick();}catch(e){}},3000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){try{npcMailTick();fbCheckMail(false);}catch(e){}}});   // 돌아왔을 때 1시간 지났으면
 window.addEventListener('online',()=>{try{fbStart().then(()=>fbCheckMail(false));}catch(e){}});
 
