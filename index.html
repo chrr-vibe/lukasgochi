@@ -506,25 +506,31 @@ function makeRoom(room,lampOn,night){
     R(x,40,62,14,8,'#6b3d24');R(x,40,62,14,2,'#8a5434');R(x,46,64,2,2,'#c9a24a');
     R(x,36,74,56,12,'#2f4f7a');R(x,38,76,52,8,'#3e6694');for(let i=40;i<90;i+=6)R(x,i,79,2,2,'#c9a24a');
   }else if(room==='street'){
-    // ---- 프로이센 거리 (80년대 독일 골목) ----
-    R(x,0,0,128,30,night?'#1b1f4a':'#a9c7de');
-    if(night)for(const [sx,sy] of [[10,3],[40,6],[76,2],[104,5],[120,9]])R(x,sx,sy,1,1,'#fff8c8');
-    const BLD=[[0,6,30,'#c9b79a'],[30,2,34,'#a8a39b'],[64,8,28,'#d6b98f'],[92,0,36,'#9fa6a0']];   // 알트바우 건물들
-    for(const [bx,by,bw,bc] of BLD){R(x,bx,by,bw,62-by,bc);R(x,bx,by,bw,2,'#6f6a63');R(x,bx,by+2,bw,1,'rgba(255,255,255,.25)');
-      for(let wy=by+6;wy<50;wy+=11)for(let wx=bx+4;wx<bx+bw-5;wx+=9){const lit=night&&((wx*7+wy*3)%5<2);R(x,wx,wy,5,7,'#4a4440');R(x,wx+1,wy+1,3,5,lit?'#ffd98a':'#7f98ad');R(x,wx,wy+7,5,1,'#e8e0d0');}}
-    R(x,66,40,22,8,'#2f6b48');R(x,67,41,20,6,'#3e8a5c');for(let i=69;i<86;i+=3)R(x,i,43,2,2,'#f2e9c9');   // 가게 간판
-    R(x,66,48,22,14,'#3a2f2a');R(x,68,50,8,12,'#7f98ad');R(x,78,50,8,12,'#7f98ad');
-    R(x,38,44,7,7,'#2f5fb0');R(x,40,46,1,4,'#ffffff');R(x,43,46,1,4,'#ffffff');R(x,40,49,4,1,'#ffffff');   // U-Bahn 표지
-    R(x,0,62,128,4,'#8d8a85');R(x,0,62,128,1,'#b5b1aa');            // 인도 턱
-    R(x,0,66,128,22,'#6e6a66');for(let j=66;j<88;j+=3)for(let i=((j/3)%2?0:3);i<128;i+=6)R(x,i,j,5,2,'#7d7873');   // 돌길
-    // 광고 기둥
-    R(x,8,40,10,24,'#5a6b4a');R(x,7,38,12,3,'#3e4a33');R(x,9,44,8,6,'#e8c96a');R(x,9,52,8,6,'#d86a5a');R(x,7,63,12,1,'#3e4a33');
-    // 트라비 (작은 자동차)
-    R(x,96,70,26,8,'#7fa8b8');R(x,100,65,16,6,'#7fa8b8');R(x,102,66,5,4,'#cfe3ea');R(x,109,66,5,4,'#cfe3ea');R(x,96,73,26,1,'#5a7d8c');
-    R(x,99,77,6,4,'#26221f');R(x,113,77,6,4,'#26221f');R(x,121,72,2,2,'#ffe58a');
-    // 가로등
-    R(x,52,22,2,44,'#2f2f36');R(x,48,20,10,3,'#2f2f36');R(x,49,23,8,2,night?'#fff3b0':'#e8e2c8');
-    if(night){x.fillStyle='rgba(255,240,170,.18)';x.beginPath();x.moveTo(49,25);x.lineTo(57,25);x.lineTo(68,66);x.lineTo(38,66);x.closePath();x.fill();}
+    // ---- 프로이센 거리 (18세기 · 중세풍 목조 골목) ----
+    R(x,0,0,128,34,night?'#1b1f4a':'#b9cfe0');
+    if(night){for(const [sx,sy] of [[10,3],[40,6],[76,2],[104,5],[120,9]])R(x,sx,sy,1,1,'#fff8c8');x.fillStyle='#fff3b0';x.beginPath();x.arc(112,8,4,0,7);x.fill();}
+    // 멀리 교회 첨탑
+    R(x,60,4,8,30,'#8d8478');x.fillStyle='#4f5a63';x.beginPath();x.moveTo(58,5);x.lineTo(64,-8);x.lineTo(70,5);x.closePath();x.fill();R(x,63,12,2,4,'#3b2a46');
+    // 목조 가옥들 (하프팀버 + 뾰족 지붕)
+    const HS=[[0,30,'#efe3c8','#7a3b2a'],[30,24,'#e6d6b4','#5a3a2a'],[70,28,'#f2e6cc','#7a3b2a'],[98,30,'#e9dcc0','#4f3a2e']];
+    for(const [hx,hw,wall,roof] of HS){const top=20, peak=top-14;
+      x.fillStyle=roof;x.beginPath();x.moveTo(hx-2,top);x.lineTo(hx+hw/2,peak);x.lineTo(hx+hw+2,top);x.closePath();x.fill();
+      R(x,hx,top,hw,42,wall);
+      const TB='#5a3a24';R(x,hx,top,hw,2,TB);R(x,hx,top+20,hw,2,TB);R(x,hx,top,2,42,TB);R(x,hx+hw-2,top,2,42,TB);R(x,hx+hw/2-1,top,2,20,TB);
+      x.strokeStyle=TB;x.lineWidth=1.5;x.beginPath();x.moveTo(hx+2,top+2);x.lineTo(hx+hw/2-1,top+20);x.moveTo(hx+hw-2,top+2);x.lineTo(hx+hw/2+1,top+20);x.stroke();
+      for(const wx of [hx+4,hx+hw-10]){const lit=night&&((wx*3)%4<2);R(x,wx,top+24,6,8,'#4a3424');R(x,wx+1,top+25,4,6,lit?'#ffd98a':'#8fa6b8');R(x,wx+3,top+25,1,6,'#4a3424');R(x,wx-1,top+32,8,1,'#7a5236');}
+      R(x,hx+hw/2-3,top+30,6,12,'#6b3d24');R(x,hx+hw/2-3,top+30,6,1,'#4a2a18');}
+    // 프로이센 깃발 (검정·하양)
+    R(x,54,22,1,18,'#3b2a46');R(x,55,22,10,3,'#1d1d22');R(x,55,25,10,3,'#f4f1ea');R(x,55,28,10,3,'#1d1d22');
+    // 돌바닥
+    R(x,0,62,128,26,'#8a7f72');for(let j=62;j<88;j+=3)for(let i=((j/3)%2?0:3);i<128;i+=6)R(x,i,j,5,2,'#9c9184');
+    // 우물
+    R(x,6,58,16,10,'#8d8478');R(x,6,58,16,2,'#a69d90');R(x,8,46,1,12,'#5a3a24');R(x,19,46,1,12,'#5a3a24');R(x,6,44,16,3,'#7a3b2a');R(x,13,48,1,6,'#3b2a46');
+    // 기름 등불 (벽걸이)
+    R(x,92,28,1,6,'#2f2f36');R(x,89,33,7,2,'#2f2f36');R(x,90,35,5,6,night?'#ffd36b':'#e8e2c8');R(x,90,35,5,1,'#2f2f36');R(x,89,41,7,1,'#2f2f36');
+    if(night){x.fillStyle='rgba(255,220,140,.18)';x.beginPath();x.arc(92,38,12,0,7);x.fill();}
+    // 나무 수레
+    R(x,98,68,22,6,'#7a5236');R(x,98,66,22,2,'#8e6240');R(x,100,74,6,6,'#3e2418');R(x,112,74,6,6,'#3e2418');R(x,102,76,2,2,'#8e6240');R(x,114,76,2,2,'#8e6240');R(x,120,70,7,1,'#5a3a24');
   }else if(room==='aliving'){
     // ---- 안할트 거실 (형의 방 같은 고풍스러운 거실) ----
     R(x,0,0,128,40,'#3f2a4a');for(let j=2;j<38;j+=8)for(let i=((j/8|0)%2?6:2);i<128;i+=8){R(x,i,j,1,3,'#57396a');R(x,i-1,j+1,3,1,'#57396a');}
@@ -1289,7 +1295,7 @@ const MG=(()=>{
   const EXIT=['GGGGGGGGG','GGGGGGWWG','GGGWWWWWG','GGWGWWGGG','GGGGWWWGG','GGGWGGGWG','GGWGGGGWG','GWGGGGGGG','GGGGGGGGG'], EP={G:'#1fae5a',W:'#ffffff'};   // 비상구 픽토그램 (플레로마)
   const lamps=[14,64,114];
   function start(onEnd,theme){s={t0:performance.now(),now:0,notes:chart(),combo:0,best:0,fx:[],pops:[],held:{L:false,R:false},flash:{L:0,R:0},phase:'play',endT:0,onEnd,theme:theme||''};
-    beep(660,.08);setTimeout(()=>beep(990,.1),160);}
+    beep(660,.08);setTimeout(()=>beep(990,.1),160);closeMenu();}
   const spd=()=>CFG.speed*(1+Math.min(s.combo,10)*.03);
   const yOf=t=>LINE_Y-(t-s.now)*spd()/1000;
   function pop(txt,lane,c){s.pops.push({txt,lane,c,t:s.now});}
@@ -1433,6 +1439,7 @@ function btnC(){
   if(st.dead) return;
   if(st.map){mapSelect();return;}
   if(st.mode==='mg'||st.mode==='mg2'||st.broAway) return;
+  if(!st.menu&&st.script){beep(330,.04);return;}   // 대사 진행 중(플레로마/탈출 직전 등)엔 기능창 안 열림
   if(!st.menu){st.menu='root';st.cur=0;renderMenu();beep(990,.06);return;}
   doAction(menuItems()[st.cur]);
 }
@@ -1761,7 +1768,7 @@ document.getElementById('warnClose').onclick=()=>warnModal.classList.remove('sho
 document.getElementById('deadReset').onclick=()=>bkfile.click();   // 백업 불러오면 그 상태로 다시
 document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 상황을 모두 지우고 처음부터 할까?'))return;restoring=true;try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem(SAVE_KEY+':bg');}catch(e){}location.reload();};
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
-const UPDATE_NOTE={id:'n3',text:'지역 해금'};
+const UPDATE_NOTE={id:'n4',text:'추가 지역 해금\n변장 기능 추가'};
 document.getElementById('noteOk').onclick=()=>{document.getElementById('noteModal').classList.remove('show');try{localStorage.setItem(SAVE_KEY+':note',UPDATE_NOTE.id);}catch(e){}};
 loadGame(); if(st.dead) deadModal.classList.add('show');
 else{let seen=null;try{seen=localStorage.getItem(SAVE_KEY+':note');}catch(e){} if(seen!==UPDATE_NOTE.id){document.getElementById('noteText').textContent=UPDATE_NOTE.text;document.getElementById('noteModal').classList.add('show');}} if(!SHELL[st.theme]) st.theme='1'; applyBg(); renderShell(); fitEgg(); applyOutfit();
