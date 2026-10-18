@@ -903,7 +903,7 @@ function figure(who,t){   // 앞머리 레이어가 있는 캐릭터는 흔들�
     oc2x.setTransform(1,0,k*.8,1,-k*.8*Y0,0);oc2x.drawImage(imgs.juliaLockR,0,0);
     oc2x.setTransform(1,0,0,1,0,0);return oc2;}
   if(who==='lover'||who==='loverSleep'){   // 애인: 율리아처럼 옆머리(+포니테일)를 위쪽 고정으로 살랑살랑, 같이 잘 땐 루카스 잘 때처럼 느리게
-    const sl=who==='loverSleep', k=sl?.02*Math.sin(t/1000*2*Math.PI/3.4)+.005*Math.sin(t/1000*5.1):.032*Math.sin(t/1000*2*Math.PI/2.6)+.008*Math.sin(t/1000*4.3), Y0=87;   // 율리아 크기에 맞춰 줄여서 옆머리 시작점이 더 아래 (발끝을 루카스 높이에 맞춰 3px 올림)
+    const sl=who==='loverSleep', k=sl?.02*Math.sin(t/1000*2*Math.PI/3.4)+.005*Math.sin(t/1000*5.1):.032*Math.sin(t/1000*2*Math.PI/2.6)+.008*Math.sin(t/1000*4.3), Y0=sl?87:80;   // 깨어 있을 땐 새 원본(율리아와 같은 크기) 기준, 잘 땐 기존 그림 기준
     oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(imgs[who],0,0);
     oc2x.setTransform(1,0,k,1,-k*Y0,0);oc2x.drawImage(imgs[who+'LockL'],0,0);
     oc2x.setTransform(1,0,k*.8,1,-k*.8*Y0,0);oc2x.drawImage(imgs[who+'LockR'],0,0);
