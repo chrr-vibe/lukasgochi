@@ -1024,9 +1024,8 @@ function callLeo(){   // 레오나르드 부르기 (다시 누르면 돌려보�
 }
 function adrStart(){   // 형 아드리안 등장 → 형의 방으로 (20분) / 형과 관계 최대면 안할트 아드리안 방으로 (갇히지 않음)
   const was=st.adrMeet|0;st.adrMeet=was+1;saveGame();
-  if(was<ANHALT_MEET&&st.adrMeet>=ANHALT_MEET) setTimeout(()=>toast('✦ 안할트 해금! (지도)',2200),400);
   const free=(st.adrRel|0)>=REL_MAX;
-  st.leo={who:'adr',phase:'enter',t0:performance.now(),lines:[['루카. 내 동생.','아드리안'],['........','루카스'],...(st.adrMeet<=ANHALT_MEET?[['✦ 기회가 생겼다. ('+st.adrMeet+'/'+ANHALT_MEET+')','']]:[])],i:0,off:70,
+  st.leo={who:'adr',phase:'enter',t0:performance.now(),lines:[['루카. 내 동생.','아드리안'],['........','루카스'],...(st.adrMeet<=ANHALT_MEET?[['✦ 기회가 생겼다. ('+st.adrMeet+'/'+ANHALT_MEET+')','']]:[]),...(was<ANHALT_MEET&&st.adrMeet>=ANHALT_MEET?[['✦ 안할트 해금! (지도)','']]:[])],i:0,off:70,
     after:free?()=>{if(st.withLeo)st.withLeo=false;saveGame();setMode('idle');st.trans=.01;st.transTo='adrroom';}:()=>{st.bro={until:Date.now()+BRO_MS};st.letter=0;if(st.withLeo)st.withLeo=false;saveGame();   // 형의 방에 갈 때마다 편지 조각 새로 모으기
       setMode('idle');st.trans=.01;st.transTo='brother';}};
 }
