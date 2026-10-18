@@ -1441,9 +1441,10 @@ const MG3=(()=>{
   const CFG={time:60000,lives:5,maxLives:5,wandSpd:78,laserW:6,stick:700,spawn0:1150,spawn1:520,fall0:16,fall1:30};
   const BOT=ROOM_Y+ROOM_H-10, WY=BOT-10;   // 하단선 / 완드 위치
   const WAND=['..Y..','.YWY.','..Y..','..B..','..B..','..B..','..B..'], WP={Y:'#ffe066',W:'#ffffff',B:'#8a5a2b'};
-  const KIND=[['poison',5],['exit',4],['heart',1]];   // 비중 5:4:1
+  const KIND=[['poison',5],['exit',4],['heart',1]], KIND_RUSH=[['poison',5],['exit',4],['heart',2]];   // 비중 5:4:1 / 막판 7초: 하트 2배
+  const RUSH=7000;   // 마지막 7초만 빠르게
   let s=null;
-  const pickKind=()=>{let x=Math.random()*10;for(const [k,w] of KIND){if((x-=w)<0)return k;}return 'poison';};
+  const pickKind=rush=>{const K=rush?KIND_RUSH:KIND;let x=Math.random()*K.reduce((a,[,w])=>a+w,0);for(const [k,w] of K){if((x-=w)<0)return k;}return 'poison';};
   function start(onEnd){s={t0:performance.now(),last:performance.now(),now:0,x:W/2,held:{L:false,R:false},shots:[],objs:[],fx:[],pops:[],lives:CFG.lives,nextSpawn:1500,laser:false,hum:0,phase:'play',endT:0,hurt:-9999,onEnd};
     beep(660,.08);setTimeout(()=>beep(990,.1),160);closeMenu();}
   function move(l,on){if(!s)return;s.held[l]=on;}
@@ -1454,9 +1455,9 @@ const MG3=(()=>{
     if(ok)[1320,1568,1760,2093].forEach((f,i)=>setTimeout(()=>beep(f,.12,'square',.05),i*110));else[440,330,220].forEach((f,i)=>setTimeout(()=>beep(f,.16,'triangle',.06),i*150));
     setTimeout(()=>{const cb=s&&s.onEnd;s=null;cb&&cb(ok);},1900);}
   function update(t){if(!s)return;const dt=Math.min(.05,(t-s.last)/1000);s.last=t;s.now=t-s.t0;if(s.phase!=='play')return;
-    const k=Math.min(1,s.now/CFG.time);   // 갈수록 빨라짐
+    const rush=s.now>=CFG.time+1200-RUSH, k=rush?1:.3*Math.min(1,s.now/(CFG.time+1200-RUSH));   // 천천히 조금씩 → 마지막 7초만 확 빨라짐
     if(s.held.L)s.x-=CFG.wandSpd*dt; if(s.held.R)s.x+=CFG.wandSpd*dt; s.x=Math.max(4,Math.min(W-4,s.x));
-    if(s.now>=s.nextSpawn){const kind=pickKind();s.objs.push({kind,x:8+Math.random()*(W-16),y:ROOM_Y+2,v:CFG.fall0+(CFG.fall1-CFG.fall0)*k+Math.random()*6,ph:Math.random()*6.28,sw:kind==='exit'?6+Math.random()*6:kind==='poison'?Math.random()*4:2,bx:0});
+    if(s.now>=s.nextSpawn){const kind=pickKind(rush);s.objs.push({kind,x:8+Math.random()*(W-16),y:ROOM_Y+2,v:CFG.fall0+(CFG.fall1-CFG.fall0)*k+Math.random()*6,ph:Math.random()*6.28,sw:kind==='exit'?6+Math.random()*6:kind==='poison'?Math.random()*4:2,bx:0});
       s.objs[s.objs.length-1].bx=s.objs[s.objs.length-1].x;
       s.nextSpawn=s.now+(CFG.spawn0+(CFG.spawn1-CFG.spawn0)*k)*(.7+Math.random()*.6);}
     const beam=(s.laser||s.now<(s.laserUntil|0))&&s.now>=1200;
