@@ -99,6 +99,12 @@ body.pixel-bg{image-rendering:pixelated}
 .bgbtns{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap;justify-content:center}
 .bgbtns .addbg{margin-top:0;font-size:12px;padding:7px 12px}
 .addbg.cap{margin-top:10px}
+.caprow{display:flex;gap:8px;justify-content:center}
+.glog{text-align:left;max-height:50vh;overflow-y:auto;font-size:12px;line-height:1.6;color:var(--ink)}
+.glog .gt{color:#a35a8a;font-size:11px;margin-right:6px}
+.glog .ge{padding:4px 2px;border-bottom:1px dashed #e3c6da;white-space:pre-line}
+.glog h4{margin:8px 0 2px;font-size:12px;color:#a35a8a}
+.glog ul{margin:0;padding-left:16px}
 .test .row+b{margin-top:12px}
 .test .sw{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid;margin-right:4px;vertical-align:-1px}
 .modal{position:fixed;inset:0;background:rgba(59,42,70,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
@@ -160,7 +166,7 @@ html,body{height:auto;min-height:100%}
   </div></div>
 
   <div class="bgbtns"><button class="addbg" id="addbg">+ add background</button><button class="addbg" id="chgbg">⇄ change background</button></div>
-  <button class="addbg cap" id="capbtn">📷 capture</button>
+  <div class="caprow"><button class="addbg cap" id="capbtn">📷 capture</button><button class="addbg cap" id="guidebtn">📖 play guide</button></div>
   <input type="file" id="bgfile" accept="image/*" hidden>
   <input type="file" id="bkfile" accept=".json,application/json,text/plain" hidden>
 
@@ -199,6 +205,10 @@ html,body{height:auto;min-height:100%}
   <div class="modal" id="bkModal"><div class="mbox"><div class="mt">💾 백업 · 복원</div>
     <div class="bkhint">소지액, 악세사리, 옷, 테마, 배경, 상태를<br>파일 하나로 저장하고 다시 불러올 수 있어.</div>
     <div class="mcol"><button class="addbg" id="bkSave">백업 파일 저장하기</button><button class="addbg" id="bkLoad">백업 파일 불러오기</button><button class="addbg ghost" id="bkClose">닫기</button></div></div></div>
+  <div class="modal" id="guideModal"><div class="mbox"><div class="mt">📖 play guide</div>
+    <div class="mcol" id="guideMenu"><button class="addbg" id="gLog">업데이트 내역</button><button class="addbg" id="gHow">플레이 가이드</button><button class="addbg ghost" id="gClose">닫기</button></div>
+    <div id="guideBody" style="display:none"><div class="glog" id="guideText"></div>
+      <div class="mrow"><button class="addbg ghost" id="gBack">뒤로</button><button class="addbg ghost" id="gClose2">닫기</button></div></div></div></div>
   <div class="modal" id="capModal"><div class="mbox"><div class="mt">📷 capture</div><img id="capImg" alt="capture"><div class="mrow"><button class="addbg" id="capSave">이미지로 저장하기</button><button class="addbg ghost" id="capClose">닫기</button></div></div></div>
 </div>
 
@@ -1840,7 +1850,25 @@ document.getElementById('warnClose').onclick=()=>warnModal.classList.remove('sho
 document.getElementById('deadReset').onclick=()=>bkfile.click();   // 백업 불러오면 그 상태로 다시
 document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 상황을 모두 지우고 처음부터 할까?'))return;restoring=true;try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem(SAVE_KEY+':bg');}catch(e){}location.reload();};
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
-const UPDATE_NOTE={id:'n5',text:'생일 이벤트 추가\n소지품창 추가'};
+// 업데이트 내역: *알림주기 할 때마다 맨 위에 추가 (가장 최근 것이 접속 시 알림으로 한 번 뜸)
+const UPDATE_LOG=[
+  {id:'n6',t:'26.10.18 11:26',text:'플레이 가이드 추가'},
+];
+const UPDATE_NOTE=UPDATE_LOG[0];
+const PLAY_GUIDE=`<h4>⏰ 시간 이벤트 존재</h4><ul><li>특정 시간에 특정 행동을 하거나 특정 인물을 만나면 이벤트 발생</li></ul>
+<h4>🎀 아이템 이벤트 존재</h4><ul><li>특정 아이템을 착용해야만 진행 가능한 이벤트 존재</li></ul>
+<h4>🔁 반복 이벤트 존재</h4><ul><li>특정 상태가 중첩될 시 이벤트 발생</li><li>특정 행동을 반복할 시 이벤트 발생</li></ul>
+<h4>🎲 랜덤 이벤트 존재</h4><ul><li>특정 행동을 진행 시 일정 확률로 이벤트 발생</li></ul>
+<div class="ge" style="border:0;text-align:center;margin-top:8px">물어보면 알려줌</div>`;
+(()=>{const $=id=>document.getElementById(id), m=$('guideModal');
+  const menu=on=>{$('guideMenu').style.display=on?'':'none';$('guideBody').style.display=on?'none':'';};
+  const esc=x=>x.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  $('guidebtn').onclick=()=>{menu(true);m.classList.add('show');beep(990,.05);};
+  $('gLog').onclick=()=>{$('guideText').innerHTML=UPDATE_LOG.map(u=>`<div class="ge"><span class="gt">${u.t}</span>${esc(u.text)}</div>`).join('');menu(false);};
+  $('gHow').onclick=()=>{$('guideText').innerHTML=PLAY_GUIDE;menu(false);};
+  $('gBack').onclick=()=>menu(true);
+  $('gClose').onclick=$('gClose2').onclick=()=>m.classList.remove('show');
+})();
 document.getElementById('noteOk').onclick=()=>{document.getElementById('noteModal').classList.remove('show');try{localStorage.setItem(SAVE_KEY+':note',UPDATE_NOTE.id);}catch(e){}};
 loadGame(); if(st.dead) deadModal.classList.add('show');
 else{let seen=null;try{seen=localStorage.getItem(SAVE_KEY+':note');}catch(e){} if(seen!==UPDATE_NOTE.id){document.getElementById('noteText').textContent=UPDATE_NOTE.text;document.getElementById('noteModal').classList.add('show');}} if(!SHELL[st.theme]) st.theme='1'; applyBg(); renderShell(); fitEgg(); applyOutfit();
