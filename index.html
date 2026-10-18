@@ -276,7 +276,7 @@ const NIKO_REGIONS=['prussia','bavaria'];   // 니콜라우스로 변장 + 마�
 const NIKO_BARE=['nikolaus','prince'];     // 변장했는데 마스크 안 쓰면: 니콜라우스 방·왕세자 방만
 const nikoBare=()=>st.niko&&!st.wear.mask;
 const MAP_NODES=[{id:'home',name:'우리 동네',x:22,y:46,entry:'bed'},{id:'bavaria',name:'바이에른 궁',x:72,y:22,entry:'garden'},
-  {id:'prussia',name:'프로이센',x:122,y:46,entry:'street'},{id:'anhalt',name:'안할트',x:172,y:22,entry:'aliving',lock:()=>(st.adrMeet|0)<ANHALT_MEET},{id:'baden',name:'바덴',x:222,y:46,entry:'bstreet',lock:()=>!st.badenOk,showName:true},   // 잠겨 있어도 이름은 보임
+  {id:'prussia',name:'프로이센',x:122,y:46,entry:'street'},{id:'anhalt',name:'안할트',x:172,y:22,entry:'aliving',lock:()=>(st.adrMeet|0)<ANHALT_MEET,showName:true},{id:'baden',name:'바덴',x:222,y:46,entry:'bstreet',lock:()=>!st.badenOk,showName:true},   // 잠겨 있어도 이름은 보임
   {id:null,name:'???',x:272,y:22},{id:null,name:'???',x:322,y:46},{id:null,name:'???',x:372,y:22}];   // 정사각형 칸 지그재그 (이름은 칸 아래)
 const MAP_W=410;
 function regionNow(){return REGION_OF[st.room]||'home';}
@@ -284,7 +284,7 @@ function withRo(w){const c=w.charCodeAt(w.length-1)-0xAC00;if(c<0||c>11171)retur
 const ACTS=[
   {id:'book', label:'책 읽기',        room:'living'},
   {id:'news', label:'신문 읽기',      room:'bed'},
-  {id:'sleep',label:'잠자기',         room:'bed'},
+  {id:'sleep',label:'잠자기',         room:['bed','nikolaus']},   // 니콜라우스 방에서도 (변장 중엔 X)
   {id:'eat',  label:'밥 먹기',        room:'living'},
   {id:'leo',  label:'레오나르드 만나기',room:['library','park']},
   {id:'eli',  label:'엘리아스 만나기',  room:'park'},
@@ -835,6 +835,7 @@ function drawMap(t){   // 지역 지도 (초원 위 구불구불한 길 + 메모
 function mapMove(d){const M=st.map;M.cur=Math.max(0,Math.min(MAP_NODES.length-1,M.cur+d));beep(880,.04);}
 function mapSelect(){const n=MAP_NODES[st.map.cur];
   if(!n.id||(n.lock&&n.lock())){beep(220,.15);toast('아직 갈 수 없는 지역이야.');return;}
+  if(st.poison&&n.id!=='home'){beep(220,.15);toast('독 때문에 우리 동네 밖으론 갈 수 없어.');return;}   // 독약 상태: 우리 동네만
   if(st.niko&&!NIKO_REGIONS.includes(n.id)){beep(220,.15);toast('변장 중엔 프로이센과 바이에른만 갈 수 있어.');return;}
   if(nikoBare()&&n.id!=='bavaria'){beep(220,.15);toast('마스크를 써야 갈 수 있어.');return;}
   st.map=null;
@@ -1330,6 +1331,7 @@ function doAction(m){
   if(m.id==='map'){closeMenu();beep(990,.06);st.map={cur:Math.max(0,MAP_NODES.findIndex(n=>n.id===regionNow())),t0:performance.now()};return;}
   if(m.id==='go'){st.cookStreak=0;closeMenu();beep(1320,.08);setMode('idle');st.leo=null;if(st.withLeo){st.withLeo=false;saveGame();}st.trans=.01;st.transTo=m.to;return;}
   // ---- actions ----
+  if(m.id==='sleep'&&inRoom(m)&&st.niko&&st.mode!=='sleep'){beep(220,.15);toast('변장 중엔 잘 수 없어.');return;}
   if(m.id==='mail'&&inRoom(m)&&st.letterOk){openSub('mail');return;}
   if(m.id==='gleo'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 만날 수 있어.');return;}
   if(m.id==='call'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 부를 수 있어.');return;}
@@ -1878,7 +1880,7 @@ function loadGame(){
     if(!SPR.outfits[st.outfit]) st.outfit='basic';
     customBgURL=localStorage.getItem(SAVE_KEY+':bg');
     if(st.bg.type==='custom'&&!customBgURL) st.bg={type:'preset',i:0};
-    if(d.sleeping && st.room==='bed'){st.mode='sleep';}
+    if(d.sleeping && (st.room==='bed'||st.room==='nikolaus') && !st.niko){st.mode='sleep';}
   }catch(e){}
 }
 
