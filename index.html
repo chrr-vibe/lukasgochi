@@ -954,14 +954,14 @@ function drawLeoHome(x,t){   // 방에 함께 있는 레오나르드 (신문 읽
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure('leoHome',t),Math.round(x),CHY,CH,CH);
   if(st.mode==='news') drawLeoReading(x,'news');
 }
-function drawLover(x,t){   // 동료의 집: 늘 있는 애인 (책·신문은 레오나르드처럼 안경 쓰고 읽어줌 / 같이 잘 땐 자는 그림)
+function drawLover(x,t){   // 동료의 집: 늘 있는 애인 (책·신문은 레오나르드처럼 읽어줌 / 같이 잘 땐 자는 그림)
   const sl=st.mode==='sleep', who=sl&&imgs.loverSleep.naturalWidth?'loverSleep':'lover';
   if(!imgs[who].naturalWidth) return;
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure(who,t),Math.round(x),CHY,CH,CH);
-  if(st.mode==='lbook'||st.mode==='lnews') drawLeoReading(x,st.mode==='lnews'?'news':'book');
+  if(st.mode==='lbook'||st.mode==='lnews') drawLeoReading(x,st.mode==='lnews'?'news':'book',true);   // 원래 안경을 쓰고 있어서 레오나르드 안경은 빼고 책·신문만
 }
-function drawLeoReading(x,kind){   // 레오나르드: 안경 + 신문/책
-  x=Math.round(x);ctx.drawImage(imgs.leoGlasses,x,CHY,CH,CH);
+function drawLeoReading(x,kind,noGlasses){   // 레오나르드: 안경 + 신문/책
+  x=Math.round(x);if(!noGlasses)ctx.drawImage(imgs.leoGlasses,x,CHY,CH,CH);
   const nx=x+35, ny=CHY+60;
   if(kind==='news'){R(ctx,nx,ny,26,17,'#3b2a46');R(ctx,nx+1,ny+1,24,15,'#f6f1e7');R(ctx,nx+13,ny+1,1,15,'#cfc6b8');
     for(let i=0;i<5;i++){R(ctx,nx+3,ny+4+i*2,8,1,'#9a8f9e');R(ctx,nx+15,ny+4+i*2,8,1,'#9a8f9e');} R(ctx,nx+3,ny+2,8,1,'#3b2a46');}
