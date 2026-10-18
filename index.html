@@ -239,7 +239,7 @@ const PIV=76, BX0=70, BX1=124;
 
 const imgs={}; let loaded=0,total=0;
 function load(k,src){total++;const im=new Image();im.onload=()=>loaded++;im.src=src;imgs[k]=im;}
-load('bang',SPR.bang); load('tail',SPR.tail); load('leo',SPR.leo); load('glasses',SPR.glasses); load('drunk',SPR.drunk); load('eli',SPR.eli); load('monocle',SPR.monocle); load('heart',SPR.heart); load('leoHome',SPR.leoHome); load('leoGlasses',SPR.leoGlasses); load('niko',SPR.niko); load('julia',SPR.julia); load('juliaLockL',SPR.juliaLockL); load('juliaLockR',SPR.juliaLockR); load('nikoBang',SPR.nikoBang); load('nikoMask',SPR.nikoMask); load('leoBook',SPR.leoBook); load('adr',SPR.adr); load('broHead',SPR.broHead); for(const k of ['heart','broHead','leoHome','adr']) load(k+'Bang',SPR[k+'Bang']); load('jerome',SPR.jerome); load('jeromeBang',SPR.jeromeBang); load('onesie',SPR.onesie); load('mask',SPR.mask); load('gloves',SPR.gloves); if(SPR.eras){load('eras',SPR.eras); if(SPR.erasBang) load('erasBang',SPR.erasBang);}
+load('bang',SPR.bang); load('tail',SPR.tail); load('leo',SPR.leo); load('glasses',SPR.glasses); load('drunk',SPR.drunk); load('eli',SPR.eli); load('monocle',SPR.monocle); load('heart',SPR.heart); load('leoHome',SPR.leoHome); load('leoGlasses',SPR.leoGlasses); load('niko',SPR.niko); load('julia',SPR.julia); load('leoAcad',SPR.leoAcad); load('juliaAcad',SPR.juliaAcad); load('juliaLockL',SPR.juliaLockL); load('juliaLockR',SPR.juliaLockR); load('nikoBang',SPR.nikoBang); load('nikoMask',SPR.nikoMask); load('leoBook',SPR.leoBook); load('adr',SPR.adr); load('broHead',SPR.broHead); for(const k of ['heart','broHead','leoHome','adr']) load(k+'Bang',SPR[k+'Bang']); load('jerome',SPR.jerome); load('jeromeBang',SPR.jeromeBang); load('onesie',SPR.onesie); load('mask',SPR.mask); load('gloves',SPR.gloves); if(SPR.eras){load('eras',SPR.eras); if(SPR.erasBang) load('erasBang',SPR.erasBang);}
 for(const k of ['lover','loverLockL','loverLockR','loverSleep','loverSleepLockL','loverSleepLockR']) if(SPR[k]) load(k,SPR[k]);   // 동료의 집: 애인 (깨어 있을 때 / 같이 잘 때)
 for(const o in SPR.outfits) for(const k in SPR.outfits[o]) load(o+':'+k,SPR.outfits[o][k]);
 
@@ -911,9 +911,9 @@ function swayBang(c,layer,amp){   // 앞머리 레이어를 위쪽 고정으로 
 }
 const oc2=document.createElement('canvas'); oc2.width=oc2.height=192; const oc2x=oc2.getContext('2d');
 function figure(who,t){   // 앞머리 레이어가 있는 캐릭터는 흔들어서 합성
-  if(who==='julia'){   // 율리아: 양옆으로 늘어진 옆머리를 위쪽 고정으로 살랑살랑
+  if(who==='julia'||who==='juliaAcad'){   // 율리아: 양옆으로 늘어진 옆머리를 위쪽 고정으로 살랑살랑 (아카데미에선 교복 몸통)
     const k=.032*Math.sin(t/1000*2*Math.PI/2.6)+.008*Math.sin(t/1000*4.3), Y0=80;
-    oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(imgs.julia,0,0);
+    oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(imgs[who],0,0);
     oc2x.setTransform(1,0,k,1,-k*Y0,0);oc2x.drawImage(imgs.juliaLockL,0,0);
     oc2x.setTransform(1,0,k*.8,1,-k*.8*Y0,0);oc2x.drawImage(imgs.juliaLockR,0,0);
     oc2x.setTransform(1,0,0,1,0,0);return oc2;}
@@ -1389,8 +1389,8 @@ function doAction(m){
   if(m.id==='await'){   // 아카데미 기다리기: 엘리아스 30% · 율리아 30% · 레오나르드 30% (→ 기억 결투)
     const x=Math.random();st.leo=null;
     if(x<.3){setMode('leo');st.leo={who:'eli',swag:true,phase:'enter',t0:performance.now(),lines:ACADEMY_ELI[Math.random()*ACADEMY_ELI.length|0],i:0,off:70};}
-    else if(x<.6){setMode('leo');st.leo={who:JULIA(),phase:'enter',t0:performance.now(),lines:ACADEMY_JULIA[Math.random()*ACADEMY_JULIA.length|0],i:0,off:70};}
-    else if(x<.9){setMode('leo');st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[['준비됐어?','레오나르드']],i:0,off:70,
+    else if(x<.6){setMode('leo');st.leo={who:JULIA()==='julia'&&imgs.juliaAcad.naturalWidth?'juliaAcad':JULIA(),phase:'enter',t0:performance.now(),lines:ACADEMY_JULIA[Math.random()*ACADEMY_JULIA.length|0],i:0,off:70};}
+    else if(x<.9){setMode('leo');st.leo={who:imgs.leoAcad.naturalWidth?'leoAcad':'leo',phase:'enter',t0:performance.now(),lines:[['준비됐어?','레오나르드']],i:0,off:70,
       after:()=>{hideDlg();setMode('mg4');MG4.start(duelEnd);}};}
     else{setMode('talk');say('…아무도 오지 않았다.','');}
     return;}
