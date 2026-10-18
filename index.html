@@ -1042,6 +1042,7 @@ function eliStart(){
   const lines=drunk?ELI_DRUNK:[...ELI_BUDDY[Math.random()*ELI_BUDDY.length|0],['✦ 즐거운 대화를 했다.','']];
   st.leo={who:'eli',swag:!drunk,phase:'enter',t0:performance.now(),lines,i:0,off:70};
 }
+function leoBusy(){return !!st.leo && st.mode==='leo' && st.leo.phase!=='exit';}   // 등장·대화 중
 function leoLine(L){const [text,name,fx]=L.lines[L.i];if(fx)fx();say(text,name);}
 function leoUpdate(t){
   const L=st.leo; if(!L) return;
@@ -1497,6 +1498,7 @@ function btnA(){
   if(st.mode==='mg2'){MG2.pick('L');return;}
   if(st.menu==='choice'){doAction({id:'no'});return;}
   if(st.script){beep(330,.04);return;}   // 대사 진행 중엔 끊지 않음
+  if(leoBusy()){beep(330,.04);return;}   // 레오나르드 등 인물이 오는 이벤트: 끝날 때까지 취소 안 됨
   if(st.menu==='rel'){st.menu='status';st.cur=1;renderMenu();beep(520,.06);return;}
   if(st.menu==='item'){st.menu='inv';st.cur=st.invSel|0;renderMenu();beep(520,.06);return;}
   if(st.menu==='inv'){st.menu='status';st.cur=4;renderMenu();beep(520,.06);return;}
@@ -1521,7 +1523,7 @@ function btnC(){
   if(st.dead) return;
   if(st.map){mapSelect();return;}
   if(st.mode==='mg'||st.mode==='mg2'||st.broAway) return;
-  if(!st.menu&&st.script){beep(330,.04);return;}   // 대사 진행 중(플레로마/탈출 직전 등)엔 기능창 안 열림
+  if(!st.menu&&(st.script||leoBusy())){beep(330,.04);return;}   // 대사 진행 중(플레로마/탈출 직전 등)엔 기능창 안 열림
   if(!st.menu){st.menu='root';st.cur=0;renderMenu();beep(990,.06);return;}
   doAction(menuItems()[st.cur]);
 }
