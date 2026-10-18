@@ -992,7 +992,7 @@ function adrStart(){   // 형 아드리안 등장 → 형의 방으로 (20분) /
   const was=st.adrMeet|0;st.adrMeet=was+1;saveGame();
   if(was<ANHALT_MEET&&st.adrMeet>=ANHALT_MEET) setTimeout(()=>toast('✦ 안할트 해금! (지도)',2200),400);
   const free=(st.adrRel|0)>=REL_MAX;
-  st.leo={who:'adr',phase:'enter',t0:performance.now(),lines:[['루카. 내 동생.','아드리안'],['........','루카스']],i:0,off:70,
+  st.leo={who:'adr',phase:'enter',t0:performance.now(),lines:[['루카. 내 동생.','아드리안'],['........','루카스'],...(st.adrMeet<=ANHALT_MEET?[['✦ 기회가 생겼다. ('+st.adrMeet+'/'+ANHALT_MEET+')','']]:[])],i:0,off:70,
     after:free?()=>{if(st.withLeo)st.withLeo=false;saveGame();setMode('idle');st.trans=.01;st.transTo='adrroom';}:()=>{st.bro={until:Date.now()+BRO_MS};st.letter=0;if(st.withLeo)st.withLeo=false;saveGame();   // 형의 방에 갈 때마다 편지 조각 새로 모으기
       setMode('idle');st.trans=.01;st.transTo='brother';}};
 }
@@ -1126,26 +1126,31 @@ function bar(ratio,col){
   const n=10, f=Math.round(Math.max(0,Math.min(1,ratio))*n);
   return `<span class="bar">${('<i style="background:'+col+'"></i>').repeat(f)}${'<i></i>'.repeat(n-f)}</span>`;
 }
-function statusHTML(){
+function statusHTML(it){   // it(i): 선택 항목 (0 루카스 아스카니엔 · 1 관계도 · 2 상점 · 3 악세사리)
   const t=Date.now();
   const sleeping=st.mode==='sleep';
   const hu=TEST.hungryAfter-(t-st.lastEat), he=TEST.sickAfter-(t-st.lastSleep), me=TEST.cryAfter-(t-st.lastPet);
   const row=(name,ratio,col,text)=>`<div class="srow"><span class="sn">${name}</span>${bar(ratio,col)}</div><div class="st">${text}</div>`;
-  return `<div class="ttl"><span>♥ 상태</span><span>${PLACES[st.room]}</span></div>`+
+  return `<div class="ttl"><span>♥ 상태</span><span>${PLACES[st.room]}</span></div>`+it(0)+
     row('허기',hu/TEST.hungryAfter,'#ffb35c', st.hungry?'배고파… (밥 먹기)':'남은 시간 '+fmt(hu))+
     row('건강',he/TEST.sickAfter,'#7fd6a0', st.poison?(sleeping?'독 때문에 회복 안 됨':'☠ 독약 x'+st.poison+'! (레오나르드를 만나요)'):st.sick?'아픔! (재워 주세요)':sleeping?'자는 중 · 회복 중':'남은 시간 '+fmt(he))+
     row('멘탈',me/TEST.cryAfter,'#ff8fbf', st.cry?'울고 있어… (쓰다듬기)':sleeping?'자는 중':'남은 시간 '+fmt(me))+
+    ((st.plClear|0)>=PL_UNLOCK?row('명성',(st.fame|0)/FAME_MAX,'#6fa8dc','니콜라우스'):'')+it(1)+
+    `<div class="srow gold"><span class="sn">소지액</span><span class="gv">${st.gold} G</span></div>`+it(2)+it(3);
+}
+function relHTML(){   // 관계도: 지금은 레오나르드, 아드리안 방에 다녀오면 아드리안도
+  const row=(name,ratio,col,text)=>`<div class="srow"><span class="sn">${name}</span>${bar(ratio,col)}</div><div class="st">${text}</div>`;
+  return `<div class="ttl"><span>♥ 관계도</span><span>${PLACES[st.room]}</span></div>`+
     row('관계',st.rel/REL_MAX,'#b48cff','레오나르드')+
-    (st.adrSeen?row('관계',(st.adrRel|0)/REL_MAX,'#e0b23a','아드리안'):'')+
-    ((st.plClear|0)>=PL_UNLOCK?row('명성',(st.fame|0)/FAME_MAX,'#6fa8dc','니콜라우스'):'')+
-    `<div class="srow gold"><span class="sn">소지액</span><span class="gv">${st.gold} G</span></div>`;
+    (st.adrSeen?row('관계',(st.adrRel|0)/REL_MAX,'#e0b23a','아드리안'):'');
 }
 function menuItems(){
   if(st.menu==='choice') return [{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
   if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
   if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()).map(k=>({id:'go',to:k})),{id:'map',label:'다른 지역'}];
-  if(st.menu==='status') return [{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'}];
+  if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'}];
+  if(st.menu==='rel') return [{id:'relback',label:'돌아가기'}];
   if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:st.owned[x.key]?'보유중':(x.lock&&x.lock())?'잠김':x.price+'G'}));
   if(st.menu==='acc'){const ks=Object.keys(st.owned).filter(k=>st.owned[k]); return ks.length?ks.map(k=>({id:'wear',key:k,label:SHOP.find(x=>x.key===k).name,tag:st.niko&&k!=='mask'?'변장 중':st.wear[k]?'착용중':'해제'})):[{id:'none',label:'가진 악세사리가 없어'}];}
   return [];
@@ -1160,7 +1165,8 @@ function renderMenu(){
 }
 function _renderMenu(){
   if(!st.menu){menuEl.style.display='none';return;}
-  if(st.menu==='status'){menuEl.innerHTML=statusHTML()+menuItems().map((m,i)=>`<div class="it ${i===st.cur?'sel':''}"><span class="cur">▶</span>${m.label}</div>`).join('');menuEl.style.display='block';return;}
+  if(st.menu==='status'||st.menu==='rel'){const its=menuItems(), it=i=>its[i]?`<div class="it ${i===st.cur?'sel':''}"><span class="cur">▶</span>${its[i].label}</div>`:'';
+    menuEl.innerHTML=st.menu==='rel'?relHTML()+it(0):statusHTML(it);menuEl.style.display='block';return;}
   const items=menuItems();
   const title={choice:'잠입할까?',root:'무엇을 할까?',act:'행동하기',move:'어디로 갈까?',shop:'상점 · '+st.gold+'G',acc:'악세사리'}[st.menu];
   menuEl.innerHTML=`<div class="ttl"><span>♥ ${title}</span><span>${PLACES[st.room]}</span></div>`+items.map((m,i)=>{
@@ -1221,7 +1227,8 @@ function doAction(m){
     if(m.id==='talk'){closeMenu();beep(1320,.08);setMode('talk');say(LINES[Math.random()*LINES.length|0]);return;}
   }
   // ---- status / shop / accessory ----
-  if(st.menu==='status'){ return openSub(m.id); }
+  if(st.menu==='rel'){st.menu='status';st.cur=1;renderMenu();beep(520,.06);return;}
+  if(st.menu==='status'){ if(m.id==='me'){beep(660,.04);return;} return openSub(m.id); }
   if(m.id==='buy'){
     const it=SHOP.find(x=>x.key===m.key);
     if(st.owned[m.key]){beep(330,.08);toast('이미 가지고 있어.');return;}
@@ -1287,7 +1294,7 @@ const LETTER_TEXT=['친애하는 나의 동생 루카... 윽 읽기 싫다.','�
 const ESCAPE_CHANCE=.3;
 const ADR_REL_START=5;   // 아드리안 관계: 처음 아드리안 방에 들어가면 5/10부터   // 편지 10/10 이후 탐색 시 형이 자리를 비울 확률
 const MG=(()=>{
-  const CFG={combo:10,timeLimit:120000,perfect:80,good:150,speed:50,holdRate:.28,gapMin:520,gapMax:1250};
+  const CFG={combo:10,timeLimit:40000,perfect:80,good:150,speed:50,holdRate:.28,gapMin:520,gapMax:1250};
   const LINE_Y=ROOM_Y+74, LX={L:30,R:98};
   const r=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w|0,h|0);};
   const bmp=(rows,x,y,pal)=>rows.forEach((row,j)=>{for(let i=0;i<row.length;i++){const c=pal[row[i]];if(c){ctx.fillStyle=c;ctx.fillRect((x|0)+i,(y|0)+j,1,1);}}});
@@ -1433,7 +1440,8 @@ function btnA(){
   if(st.mode==='mg2'){MG2.pick('L');return;}
   if(st.menu==='choice'){doAction({id:'no'});return;}
   if(st.script){beep(330,.04);return;}   // 대사 진행 중엔 끊지 않음
-  if(st.menu==='shop'||st.menu==='acc'){const k=st.menu;st.menu='status';st.cur=k==='shop'?0:1;renderMenu();beep(520,.06);return;}
+  if(st.menu==='rel'){st.menu='status';st.cur=1;renderMenu();beep(520,.06);return;}
+  if(st.menu==='shop'||st.menu==='acc'){const k=st.menu;st.menu='status';st.cur=k==='shop'?2:3;renderMenu();beep(520,.06);return;}
   if(st.menu==='act'||st.menu==='move'||st.menu==='status'){const k=st.menu;st.menu='root';st.cur=ROOT_IDX[k];renderMenu();beep(520,.06);return;}
   if(st.menu){closeMenu();beep(520,.06);return;}
   if(st.mode!=='idle'&&st.mode!=='pet'){setMode('idle');beep(520,.06);return;}     // 기능 해제
