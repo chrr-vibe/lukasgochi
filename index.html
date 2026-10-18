@@ -776,11 +776,11 @@ function drawEars(c,t){
 }
 function isDrunk(){return Date.now()<st.drunkUntil;}
 function getDrunk(){st.drunkUntil=Date.now()+DRUNK_MS;saveGame();}   // 술 취하기: 옷은 그대로, 얼굴만 2분간 바뀜
-function bdayEvent(){   // 생일: 어디에 있든 레오나르드 등장
+function bdayEvent(){   // 생일: 어디에 있든 레오나르드 등장 (이미 받았거나 가진 꼬깔이면 해금 없이 축하만)
   st._bdayFired=true;st._bdayNow=true;st.cry=false;st.lastPet=Date.now();closeMenu();hideDlg();setMode('leo');
   const home=st.withLeo&&st.room==='bed';
   st.leo={who:home?'leoHome':'leo',phase:'enter',t0:performance.now(),i:0,off:70,stay:home,lines:[['생일 축하해. 루카스.','레오나르드'],['생각도 못했다.','루카스',()=>{
-    const first=!st.bdayOk;st.bdayOk=true;saveGame();setTimeout(()=>{st._bdayNow=false;if(first)toast('✦ 생일 꼬깔 해금! (상점)',2000);},2600);}]]};
+    const first=!st.bdayOk&&!st.owned.bday;st.bdayOk=true;saveGame();setTimeout(()=>{st._bdayNow=false;if(first)toast('✦ 생일 꼬깔 해금! (상점)',2000);},2600);}]]};
 }
 function drawMap(t){   // 지역 지도 (초원 위 구불구불한 길 + 메모)
   const M=st.map, n=MAP_NODES[M.cur], cam=Math.max(0,Math.min(MAP_W-W,n.x-W/2));
@@ -1794,6 +1794,7 @@ function loadGame(){
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
     if(isLocked(st.room)) st.room='garden';
+    if(st.owned&&st.owned.bday) st.bdayOk=true;   // 이미 산 생일 꼬깔은 해금 상태 유지
     if(REGION_OF[st.room]==='anhalt'&&(st.adrMeet|0)<ANHALT_MEET) st.room='bed';
     st.poison=st.poison===true?1:(st.poison|0);
     if(!SPR.outfits[st.outfit]) st.outfit='basic';
