@@ -2178,8 +2178,8 @@ function mailForm(kind){
   mailModal.classList.add('show');
 }
 document.getElementById('mailCancel').onclick=()=>mailModal.classList.remove('show');
-/* ---- 동료의 집: 비밀번호 (한 번 맞히면 그 뒤론 바로) + 애인 편지 (해금 뒤 현실 1시간마다) ---- */
-const LOVER_PW='1119', LOVER_MAIL_MS=60*60*1000, LOVER_UNREAD_MAX=10;
+/* ---- 동료의 집: 비밀번호 (한 번 맞히면 그 뒤론 바로) + 애인 편지 (해금 뒤 현실 6시간마다) ---- */
+const LOVER_PW='1119', LOVER_MAIL_MS=6*60*60*1000, LOVER_UNREAD_MAX=10;
 const LOVER_LETTERS=['사랑해','보고 싶어','언제 오는 거야?','네가 좋아하는 스튜 해뒀어.','꽃을 사뒀는데 한 번 봐줄래?',
   '오늘 하루는 어땠어?','밥은 챙겨 먹었어? 안 먹었으면 내가 먹여줄게.','네 생각 하느라 책이 한 장도 안 넘어가.','창밖에 비가 와. 우산은 챙겼어?','침대 한쪽이 너무 넓어.',
   '오늘 읽어줄 책 골라뒀어. 와서 들어줘.','잘 자. 꿈에서 만나.','문 비밀번호 잊지 마. 언제든 들어와.','네가 웃던 얼굴이 자꾸 떠올라.','차 끓여뒀어. 식기 전에 와.',
@@ -2197,7 +2197,7 @@ function pwTry(){
 document.getElementById('pwOk').onclick=pwTry;
 pwIn.addEventListener('keydown',e=>{if(e.key==='Enter')pwTry();});
 document.getElementById('pwNo').onclick=()=>{pwModal.classList.remove('show');try{pwIn.blur();}catch(e){}};
-function loverMailTick(){   // 현실 1시간마다 애인 편지 (로컬 · 오프라인도 OK) — 안 읽은 게 많이 쌓이면 잠깐 멈춤
+function loverMailTick(){   // 현실 6시간마다 애인 편지 (로컬 · 오프라인도 OK) — 안 읽은 게 많이 쌓이면 잠깐 멈춤
   if(!st.loverOk) return;
   const now=Date.now();
   if(!st.loverMailT){st.loverMailT=now;saveGame();return;}
