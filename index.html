@@ -1532,10 +1532,12 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
     return;}
   // 주기: 옆에 레오나르드/아드리안이 있을 때만
   const leoBy=withLeoNow()||(st.room==='prince'&&!st.leo), adrBy=(st.bro&&st.room==='brother'&&!st.broAway)||(st.room==='adrroom'&&st.adrHere);
-  if(!leoBy&&!adrBy){closeMenu();beep(220,.15);toast('줄 사람이 없다.');return;}
+  const juliaBy=st.room==='bprince'&&!st.leo;   // 대공자 방: 율리아
+  if(!leoBy&&!adrBy&&!juliaBy){closeMenu();beep(220,.15);toast('줄 사람이 없다.');return;}
   closeMenu();beep(1320,.08);take();setMode('leo');
   let lines;
-  if(leoBy){const gm=gameMin(), bday=gm>=17*60+23&&gm<=17*60+25;   // 오후 5:23~5:25: 레오나르드 생일
+  if(juliaBy){lines=[['바덴에 영원히 있어줘.','율리아'],['그런 소리가 나와?','루카스'],['그 대가 아니야?','율리아']];}
+  else if(leoBy){const gm=gameMin(), bday=gm>=17*60+23&&gm<=17*60+25;   // 오후 5:23~5:25: 레오나르드 생일
     if(bday){st.rel=REL_MAX;st.relT=Date.now();lines=[['루카스. 기억해줬구나. 감동이야.','레오나르드'],['.......','루카스']];}
     else{st.rel=Math.max(0,st.rel-1);lines=[['왕세자 시해는 중죄야.','레오나르드'],['뱉어. 뱉어. 안 줘.','루카스'],['✦ 레오나르드와의 관계가 1 감소했다.','']];}}   // 왕세자 방에선 바로 다시 차지만 알림은 띄움
   else if(st.bro){st.bro=null;lines=[['놀란 얼굴을 했다.','아드리안']];}   // 감금 해제 (자유롭게 이동 가능)
