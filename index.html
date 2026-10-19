@@ -297,6 +297,7 @@ const ACTS=[
   {id:'lnews',label:'신문 읽기',      room:'lhouse'},
   {id:'leat', label:'밥 먹기',        room:'lhouse'},
   {id:'lsleep',label:'같이 잠 자기',  room:'lhouse'},
+  {id:'lgame',label:'게임하기',      room:'lhouse'},    // 동료의 집: 이심전심 (애인과)
 ];
 /* ---- 소지품 (4x3 = 12칸, 같은 아이템도 칸을 따로 차지) ---- */
 const INV_MAX=12;
@@ -1445,6 +1446,7 @@ function doAction(m){
     else{setMode('talk');say(['아무 것도 찾지 못했다.','조용한 거리다.','낡은 포스터가 바람에 펄럭인다.'][Math.random()*3|0],'');}
     return;}
   if(m.id==='think'&&st.room==='aliving'){setMode('talk');say('얼굴이 따갑다... 날 싫어하는 티 좀 그만 내라.','루카스');return;}   // 왕세자 방: 레오나르드가 안경 쓰고 읽어줌 (루카스는 지금 옷 그대로)
+  if(m.id==='lgame'){hideDlg();setMode('mg2');MG2.start(lgameEnd,'애인은 어느 쪽?');return;}   // 동료의 집: 이심전심
   if(m.id==='sync'){   // 이심전심 (잠입마다 한 번)
     if(st.inf&&st.inf.tried){beep(220,.15);toast('이심전심은 한 번만 할 수 있어.');return;}
     if(st.inf){st.inf.tried=true;saveGame();} hideDlg();setMode('mg2');MG2.start(syncEnd);return;}
@@ -1642,7 +1644,7 @@ const MG2=(()=>{
   const big=(x,y,pal,k)=>HEART.forEach((row,j)=>{for(let i=0;i<row.length;i++){const c=pal[row[i]];if(c)r(x+i*k,y+j*k,k,k,c);}});
   const stars=[...Array(40)].map((_,i)=>({x:Math.random()*W,y:Math.random()*ROOM_H,s:[6,12,22][i%3],c:['#6f7bd8','#c9d2ff','#ffffff','#ffd6f0'][i%4]}));
   let s=null;
-  function start(onEnd){s={t0:performance.now(),now:0,ans:Math.random()<.5?'L':'R',pick:null,pickT:0,onEnd};beep(660,.08);}
+  function start(onEnd,title){s={title:title||'에라스미오스는 어느 쪽?',t0:performance.now(),now:0,ans:Math.random()<.5?'L':'R',pick:null,pickT:0,onEnd};beep(660,.08);}
   function pick(l){if(!s||s.pick||s.now<3000)return;s.pick=l;s.pickT=s.now;const ok=l===s.ans;
     if(ok)[1320,1568,1760].forEach((f,i)=>setTimeout(()=>beep(f,.12,'square',.05),i*110));else[440,330,220].forEach((f,i)=>setTimeout(()=>beep(f,.16,'triangle',.06),i*150));
     setTimeout(()=>{const cb=s&&s.onEnd;s=null;cb&&cb(ok);},1800);}
@@ -1652,7 +1654,7 @@ const MG2=(()=>{
     for(const l of ['L','R']){r(LX[l]-14,ROOM_Y+6,29,ROOM_H-12,l==='L'?'rgba(120,190,255,.10)':'rgba(180,180,200,.10)');}
     const cd=Math.ceil((3000-s.now)/1000);
     ctx.fillStyle='#ffffff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';
-    ctx.fillText('에라스미오스는 어느 쪽?',64,ROOM_Y+25);
+    ctx.fillText(s.title,64,ROOM_Y+25);
     if(s.now<3000){ctx.fillStyle='#fff36b';ctx.font='bold 24px sans-serif';ctx.fillText(String(cd),64,ROOM_Y+62);}
     else if(!s.pick){ctx.fillStyle='#9ff0ff';ctx.font='bold 10px sans-serif';ctx.fillText('골라!',64,ROOM_Y+58);}
     for(const l of ['L','R']){const dim=s.now<3000||(s.pick&&s.pick!==l&&s.ans!==l);
@@ -1665,6 +1667,11 @@ const MG2=(()=>{
   }
   return {start,pick,draw,active:()=>!!s};
 })();
+function lgameEnd(ok){
+  setMode('talk');
+  st.script={i:0,lines:ok?[['저 너무 기뻐요. 입 맞춰도 돼요?','애인'],['언젠 물어봤어?','루카스']]:[['제가 답을 바꿀게요. 이제 맞췄죠?','애인'],['고개를 절레절레 저었다.','']],after:()=>setMode('idle')};
+  say(...st.script.lines[0]);
+}
 function syncEnd(ok){
   setMode('leo');
   if(ok) st.script={i:0,lines:[['믿었어, 제롬.','에라스미오스'],['✦ 잠입이 1시간 연장되었다.','']],after:()=>{if(st.inf){st.inf.ext=(st.inf.ext|0)+1;saveGame();}setMode('idle');}};
