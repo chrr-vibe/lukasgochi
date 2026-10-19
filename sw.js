@@ -1,11 +1,12 @@
 /* LUCASGOTCHI service worker
    - 업데이트를 올릴 때마다 아래 VERSION 숫자를 올려주세요. */
-const VERSION = 'v99';
+const VERSION = 'v100';
 const CACHE = 'lucasgotchi-' + VERSION;
 const CORE = [
   './',
   './index.html',
   './sprites.js',
+  './backgrounds.js',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
