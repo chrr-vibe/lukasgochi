@@ -1,4 +1,4 @@
-// 미니게임 코드(MG/MG2/MG3/MG4) — 미니게임 수정 작업이 아니면 열지 말 것
+// 미니게임 코드(MG/MG2/MG3/MG4/MG5) — 미니게임 수정 작업이 아니면 열지 말 것
 const MG=(()=>{
   const CFG={combo:10,timeLimit:40000,perfect:80,good:150,speed:50,holdRate:.28,gapMin:520,gapMax:1250};
   const LINE_Y=ROOM_Y+74, LX={L:30,R:98};
@@ -194,4 +194,45 @@ const MG2=(()=>{
     ctx.textAlign='start';
   }
   return {start,pick,draw,active:()=>!!s};
+})();
+// 야바위 (아카데미 기숙사 · 엘리아스): 하·중·상 3판. 동전이 든 컵을 보여준 뒤 섞고, ◀▶로 고른 뒤 가운데로 확인. 틀리면 그 자리에서 끝
+const MG5=(()=>{
+  const r=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w|0,h|0);};
+  const LV=[{n:'하',swaps:5,dur:480},{n:'중',swaps:9,dur:320},{n:'상',swaps:14,dur:210}], SX=[34,64,94];
+  let s=null;
+  function newRound(){s.round++;s.slot=[0,1,2];s.coin=Math.random()*3|0;s.cur=1;s.swaps=[];
+    for(let i=0;i<LV[s.round-1].swaps;i++){const a=Math.random()*3|0,b=(a+1+(Math.random()*2|0))%3;s.swaps.push([a,b]);}
+    s.si=0;s.phase='show';s.pt=s.now;}
+  function start(onEnd){s={t0:performance.now(),now:0,round:0,wins:0,onEnd,res:null};newRound();beep(660,.08);setTimeout(()=>beep(990,.1),160);closeMenu();}
+  function move(d){if(!s||s.phase!=='pick')return;s.cur=(s.cur+d+3)%3;beep(880,.04,'square',.04);}
+  function submit(){if(!s||s.phase!=='pick')return;const ok=s.slot[s.coin]===s.cur;if(ok)s.wins++;s.res=ok;s.phase='judge';s.pt=s.now;
+    if(ok)[1320,1760].forEach((f,i)=>setTimeout(()=>beep(f,.08,'square',.05),i*90));else beep(200,.2,'sawtooth',.05);}
+  function update(t){if(!s)return;s.now=t-s.t0;const e=s.now-s.pt,dur=LV[s.round-1].dur;
+    if(s.phase==='show'&&e>1500){s.phase='shuffle';s.pt=s.now;}
+    else if(s.phase==='shuffle'&&e>dur){const[a,b]=s.swaps[s.si];for(let k=0;k<3;k++){if(s.slot[k]===a)s.slot[k]=b;else if(s.slot[k]===b)s.slot[k]=a;}beep(520,.02,'square',.03);
+      s.si++;s.pt=s.now;if(s.si>=s.swaps.length)s.phase='pick';}
+    else if(s.phase==='judge'&&e>1400){if(s.res&&s.round<3)newRound();else{s.phase='end';s.pt=s.now;}}
+    else if(s.phase==='end'&&e>1500){const cb=s.onEnd,ok=s.wins>=3;s=null;cb&&cb(ok);}}
+  function cup(x,y){r(x-9,y,18,3,'#7a3b1e');for(let j=3;j<20;j++){const w=16-((20-j)/3|0);r(x-w/2,y+j,w,1,j%5?'#b5562c':'#d9864a');}r(x-10,y+19,20,2,'#5a2a14');}
+  function coin(x,y){r(x-3,y,6,5,'#e3b23c');r(x-2,y+1,4,3,'#ffe27a');}
+  function draw(){if(!s)return;const Y=ROOM_Y,TY=Y+44,dur=LV[s.round-1].dur;
+    r(0,Y,W,ROOM_H,'#2a1a2e');for(let i=0;i<W;i+=16)r(i,Y,1,64,'#24152a');r(0,Y+60,W,ROOM_H-60,'#21142a');   // 어두운 기숙사 벽
+    ctx.fillStyle='rgba(255,226,140,.10)';ctx.beginPath();ctx.moveTo(52,Y);ctx.lineTo(76,Y);ctx.lineTo(112,Y+86);ctx.lineTo(16,Y+86);ctx.closePath();ctx.fill();   // 램프 불빛
+    r(8,TY+21,W-16,6,'#5b3a24');r(8,TY+21,W-16,1,'#c9a24a');r(12,TY+27,4,10,'#3e2716');r(W-16,TY+27,4,10,'#3e2716');   // 탁자
+    ctx.textAlign='center';ctx.font='bold 8px sans-serif';ctx.fillStyle='#ffe9a8';
+    ctx.fillText('야바위 · '+LV[s.round-1].n+'   ('+s.round+'/3)',64,Y+14);
+    const sw=s.phase==='shuffle'?s.swaps[s.si]:null,q=sw?Math.min(1,(s.now-s.pt)/dur):0;
+    const lift=k=>(s.phase==='show'&&k===s.coin&&s.now-s.pt<1100)||(s.phase==='judge'&&(k===s.coin||s.slot[k]===s.cur))||(s.phase==='end'&&k===s.coin)?14:0;
+    for(let k=0;k<3;k++){let x=SX[s.slot[k]],y=TY;
+      if(sw&&(s.slot[k]===sw[0]||s.slot[k]===sw[1])){const to=s.slot[k]===sw[0]?sw[1]:sw[0];x=SX[s.slot[k]]+(SX[to]-SX[s.slot[k]])*q;y+=Math.sin(q*Math.PI)*(s.slot[k]===sw[0]?-6:3);}
+      if(k===s.coin&&lift(k))coin(x,TY+15);
+      cup(x,y-lift(k));}
+    if(s.phase==='pick'){const x=SX[s.cur];ctx.fillStyle='#9ff0ff';ctx.beginPath();ctx.moveTo(x-4,TY-9);ctx.lineTo(x+4,TY-9);ctx.lineTo(x,TY-4);ctx.closePath();ctx.fill();
+      ctx.font='7px sans-serif';ctx.fillStyle='#ffe9a8';ctx.fillText('◀ ▶ 고르기 · 가운데: 확인',64,Y+25);}
+    else if(s.phase==='show'){ctx.font='7px sans-serif';ctx.fillStyle='#ffe9a8';ctx.fillText('동전은 여기!',64,Y+25);}
+    else if(s.phase==='judge'){ctx.font='bold 14px sans-serif';ctx.fillStyle=s.res?'#9ff0b0':'#ff6b8a';ctx.fillText(s.res?'O':'X',64,Y+82);}
+    else if(s.phase==='end'){ctx.font='bold 9px sans-serif';ctx.fillStyle='#fff3c8';ctx.fillText(s.wins>=3?'세 판 모두 맞혔다!':'틀렸다...',64,Y+80);}
+    ctx.textAlign='start';
+  }
+  return {start,move,submit,update,draw,active:()=>!!s,info:()=>s&&{phase:s.phase,round:s.round,wins:s.wins,coinSlot:s.slot[s.coin],cur:s.cur}};
 })();

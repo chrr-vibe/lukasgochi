@@ -855,6 +855,9 @@ function frame(now){
   else if(st.mode==='think' && el>TEST.timed && st.room==='adorm' && Math.random()<.3){   // 아카데미 기숙사: 30% 레오나르드(교복)가 등장 → 허기·멘탈·건강 전부 회복
     const n=Date.now();st.lastEat=n;st.lastPet=n;st.lastSleep=n;st.hungry=false;st.hungerAsked=false;st.sick=false;st.cry=false;saveGame();
     st.leo=null;setMode('leo');st.leo={who:imgs.leoAcad.naturalWidth?'leoAcad':'leo',phase:'enter',t0:performance.now(),lines:[['레오나르드가 나를 빤히 쳐다보다 갔다. 왠지 몸이 가벼워졌다.','']],i:0,off:70}; }
+  else if(st.mode==='think' && el>TEST.timed && st.room==='adorm' && Math.random()<3/7){   // 아카데미 기숙사: 30% 엘리아스 → 야바위 (위 레오나르드 30%를 빼고 남은 70% 중 3/7)
+    st.leo=null;setMode('leo');st.leo={who:'eli',swag:true,phase:'enter',t0:performance.now(),lines:[['루카~ 재밌는 거 할래?','엘리아스']],i:0,off:70,
+      after:()=>{hideDlg();setMode('mg5');MG5.start(shellEnd);}}; }
   else if(st.mode==='think' && el>TEST.timed){ setMode('talk'); if(Math.random()<.5){st.gold+=100;saveGame();say('✦ 사색하다 100골드를 주웠다! (+100G)','');} else say('좋은 사색이었다.'); }
   else if(st.mode==='cook' && el>3000){ const ok=Math.random()<(st.wear.chef?.5:COOK_OK);   // 요리사 모자: 성공 50%
     st.cookOk=ok?(st.cookOk|0)+1:0; const glove=st.cookOk>=GLOVE_STREAK&&!st.glovesOk; if(glove)st.glovesOk=true; st.lastCook=ok?'ok':'fail'; const cake=st.wear.bday; let cakeIn=false; if(ok&&cake)cakeIn=invAdd('cake'); else if(ok)st.gold+=100; dqEvent('cook',ok); if(cakeIn)dqEvent('cakeMade'); st.pickFace=ok?'smile':'idle'; setMode('pick'); const chef=st.cookStreak>=CHEF_STREAK&&!st.chefOk; if(chef)st.chefOk=true; say((ok?(cake?(cakeIn?'✦ 케이크를 만들었다! (소지품)':'✦ 케이크를 만들었지만 소지품이 가득 찼다…'):'✦ 성공했다! (+100G)'):'✦ 실패했다…')+(chef?' ✦ 요리사 모자 해금! (상점)':'')+(glove?' ✦ 고무장갑 해금! (상점)':''),''); saveGame(); }
@@ -897,6 +900,7 @@ function frame(now){
   if(MG.active()){MG.update(t);MG.draw();}
   if(MG3.active()){MG3.update(t);MG3.draw();}
   if(MG4.active()){MG4.update(t);MG4.draw();}
+  if(MG5.active()){MG5.update(t);MG5.draw();}
   if(MG2.active()) MG2.draw(t);
   if(st.map) drawMap(t);
   drawMailIcon(t);
@@ -1204,6 +1208,11 @@ const ACADEMY_JULIA=[
   [['여기서 만나네. 바덴의 아카데미가 더 아름다운데.','율리아'],['비교하러 온 거야?','루카스'],['너를 데려가려고 온 거지.','율리아']],
   [['아직도 레오나르드 곁에 있어?','율리아'],['…그게 무슨 상관인데.','루카스'],['상관있지. 나는 기다리는 걸 잘 못하거든.','율리아']],
   [['이 복도 끝까지 같이 걸을래?','율리아'],['끝에 뭐가 있는데.','루카스'],['바덴으로 가는 마차.','율리아']]];
+function shellEnd(ok){   // 야바위 결과: 세 판 다 맞히면 +1000G, 하나라도 틀리면 소지금 0G
+  if(ok)st.gold+=1000; else st.gold=0; saveGame();
+  setMode('leo');
+  st.script={i:0,lines:ok?[['✦ 세 판 모두 맞혔다! (+1000G)',''],['부자가 됐다.','루카스']]:[['✦ 소지금이 0G가 됐다...',''],['분명 속임수가 있다.','루카스']],after:()=>setMode('idle')};say(...st.script.lines[0]);
+}
 function duelEnd(score){   // 기억 결투 결과
   if(score>=5)dqEvent('duel');
   setMode('leo');
@@ -1299,6 +1308,7 @@ function btnA(){
   if(st.mode==='mg'){MG.press('L');return;}
   if(st.mode==='mg3'){MG3.move('L',true);return;}
   if(st.mode==='mg4'){MG4.input('L');return;}
+  if(st.mode==='mg5'){MG5.move(-1);return;}
   if(st.mode==='mg2'){MG2.pick('L');return;}
   if(st.menu==='choice'&&st.choice&&st.choice.cancel){st.choice=null;closeMenu();beep(520,.06);return;}
   if(st.menu==='choice'&&st.choice){beep(330,.04);return;}   // 반드시 하나 골라야 함
@@ -1329,6 +1339,7 @@ function btnB(){
   if(st.mode==='mg'){MG.press('R');return;}
   if(st.mode==='mg3'){MG3.move('R',true);return;}
   if(st.mode==='mg4'){MG4.input('R');return;}
+  if(st.mode==='mg5'){MG5.move(1);return;}
   if(st.mode==='mg2'){MG2.pick('R');return;}
   if(st.menu){st.cur=(st.cur+1)%menuItems().length;renderMenu();beep(880,.04);return;}
   beep(660,.03);
@@ -1338,6 +1349,7 @@ function btnC(){
   if(st.map){mapSelect();return;}
   if(st.mode==='mg3'){MG3.fire();return;}
   if(st.mode==='mg4'){MG4.submit();return;}
+  if(st.mode==='mg5'){MG5.submit();return;}
   if(st.mode==='mg'||st.mode==='mg2'||st.broAway) return;
   if(!st.menu&&(st.script||leoBusy())){beep(330,.04);return;}   // 대사 진행 중(플레로마/탈출 직전 등)엔 기능창 안 열림
   if(!st.menu){st.menu='root';st.cur=0;renderMenu();beep(990,.06);return;}
@@ -1350,7 +1362,7 @@ function bind(id,fn){const el=document.getElementById(id), lane={bA:'L',bC:'R'}[
 bind('bA',btnA);bind('bB',btnC);bind('bC',btnB);
 document.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='a'||k==='arrowleft'){MG.release('L');MG3.move('L',false);}if(k==='d'||k==='arrowdown'){MG.release('R');MG3.move('R',false);}if(k==='s'||k==='enter'||k==='arrowright')MG3.fire(false);});
 document.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('input,textarea,select'))return;   // 입력창에 글 쓸 땐 게임 버튼 X
-  const k=e.key.toLowerCase(); if(e.repeat&&(st.mode==='mg'||st.mode==='mg3'||st.mode==='mg4'))return;
+  const k=e.key.toLowerCase(); if(e.repeat&&(st.mode==='mg'||st.mode==='mg3'||st.mode==='mg4'||st.mode==='mg5'))return;
   if(k==='a'||k==='arrowleft')btnA(); if(k==='d'||k==='arrowdown')btnB(); if(k==='s'||k==='enter'||k==='arrowright')btnC();});
 
 /* ================= page backgrounds (pixel presets) ================= */
