@@ -1195,7 +1195,7 @@ function frame(now){
   else st.relMaxSince=0;
   st.hungry = DN-st.lastEat > TEST.hungryAfter;
   if(!st.hungry) st.hungerAsked=false;   // 허기 0: 이벤트 (한 번 물어봄)
-  else if(!st.hungerAsked && st.mode==='idle' && !st.menu && !st.map && !st.leo && !st.script && !st.trans && !st.bro && !st.inf && !st.dead){st.hungerAsked=true;saveGame();eventModal.classList.add('show');}
+  else if(!st.hungerAsked && st.mode==='idle' && !st.menu && !st.map && !st.leo && !st.script && !st.trans && !st.bro && !st.inf && !st.dead && !['bprince','adrroom','lhouse'].includes(st.room)){st.hungerAsked=true;saveGame();eventModal.classList.add('show');}   // 대공자 방·아드리안 방·동료의 집에서는 발생하지 않음
   // ---- 자동 해제 ----
   const el=t-st.modeT;
   if((st.mode==='lbook'||st.mode==='lnews') && el>TEST.timed){ setMode('talk'); say('그가 다 읽어주었다. 그의 발음이 듣기 좋다.'); }   // 동료의 집: 애인이 읽어줌
