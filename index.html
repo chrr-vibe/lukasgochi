@@ -247,10 +247,10 @@ for(const k of ['lover','loverLockL','loverLockR','loverSleep','loverSleepLockL'
 for(const o in SPR.outfits) for(const k in SPR.outfits[o]) load(o+':'+k,SPR.outfits[o][k]);
 
 /* ================= data ================= */
-const PLACES={bed:'내 방',living:'거실',library:'도서관',park:'공원',kitchen:'주방',brother:'형의 방',dorm:'기숙사',
+const PLACES={bed:'내 방',market:'상점가',living:'거실',library:'도서관',park:'공원',kitchen:'주방',brother:'형의 방',dorm:'기숙사',
   garden:'전정',hall:'그레이트 홀',nikolaus:'니콜라우스 방',prince:'왕세자 방',street:'프로이센 거리',academy:'복도',adorm:'기숙사',aliving:'거실',adrroom:'아드리안 방',bstreet:'바덴 거리',bprince:'대공자 방',lhouse:'동료의 집'};
 // 지역: 우리 동네 / 바이에른 궁 (이동하기는 같은 지역 안에서만, 다른 지역은 지도로)
-const REGION_OF={bed:'home',living:'home',library:'home',park:'home',kitchen:'home',brother:'home',dorm:'home',garden:'bavaria',hall:'bavaria',nikolaus:'bavaria',prince:'bavaria',street:'prussia',academy:'prussia',adorm:'prussia',aliving:'anhalt',adrroom:'anhalt',bstreet:'baden',bprince:'baden',lhouse:'home'};
+const REGION_OF={bed:'home',market:'home',living:'home',library:'home',park:'home',kitchen:'home',brother:'home',dorm:'home',garden:'bavaria',hall:'bavaria',nikolaus:'bavaria',prince:'bavaria',street:'prussia',academy:'prussia',adorm:'prussia',aliving:'anhalt',adrroom:'anhalt',bstreet:'baden',bprince:'baden',lhouse:'home'};
 const HOME_IN=['bed','living','kitchen'];   // 우리집 안(내 방·거실·주방). 밖에서는 '우리집 가기' → 고르기
 const ACAD_IN=['academy','adorm'];   // 아카데미 안(복도·기숙사). 밖에서는 '아카데미 가기' → 복도/기숙사 고르기
 const HIDDEN_PLACES=['brother','dorm'];
@@ -289,6 +289,7 @@ const ACTS=[
   {id:'wait', label:'기다리기',       room:'hall'},
   {id:'pbook',label:'책 읽기',        room:'prince'},
   {id:'pnews',label:'신문 읽기',      room:'prince'},
+  {id:'browse',label:'구경하기',      room:'market'},   // 상점가: 상점 목록
   {id:'cook', label:'요리하기',       room:'kitchen'},
   {id:'dish', label:'설거지',         room:'kitchen'},   // 고무장갑 착용 시에만
   {id:'taste',label:'시식하기',       room:'kitchen'},
@@ -310,7 +311,8 @@ function drawBitmap(c,rows,pal,x,y,k=1,ol='#5a2a3a'){   // 바깥 테두리를 �
   c.fillStyle=ol;for(let j=-1;j<=rows.length;j++)for(let i=-1;i<=rows[0].length;i++)if(!on(i,j)&&(on(i-1,j)||on(i+1,j)||on(i,j-1)||on(i,j+1)))c.fillRect(x+i*k,y+j*k,k,k);
   rows.forEach((r,j)=>{for(let i=0;i<r.length;i++)if(pal[r[i]]){c.fillStyle=pal[r[i]];c.fillRect(x+i*k,y+j*k,k,k);}});
 }
-const ITEMS={cake:{name:'생일 케이크',icon:(()=>{const c=document.createElement('canvas');c.width=18;c.height=16;drawBitmap(c.getContext('2d'),CAKE,CAKE_PAL,1,1);return c.toDataURL();})()}};
+const ITEMS={partifact:{name:'분홍색 아티팩트',icon:(()=>{const c=document.createElement('canvas');c.width=18;c.height=16;const x=c.getContext('2d');x.fillStyle='#5a2a4a';x.beginPath();x.arc(9,8,6,0,7);x.fill();x.fillStyle='#e0569a';x.beginPath();x.arc(9,8,5,0,7);x.fill();x.fillStyle='#ffb3d6';x.beginPath();x.arc(9,8,3.4,0,7);x.fill();x.fillStyle='#fff';x.fillRect(6,5,2,2);return c.toDataURL();})()},
+  cake:{name:'생일 케이크',icon:(()=>{const c=document.createElement('canvas');c.width=18;c.height=16;drawBitmap(c.getContext('2d'),CAKE,CAKE_PAL,1,1);return c.toDataURL();})()}};
 function invAdd(k){st.inv=st.inv||[];if(st.inv.length>=INV_MAX)return false;st.inv.push(k);saveGame();return true;}
 const ROOT=[
   {id:'act',   label:'행동하기'},
@@ -558,6 +560,34 @@ function makeRoom(room,lampOn,night){
     // trunk + rug
     R(x,40,62,14,8,'#6b3d24');R(x,40,62,14,2,'#8a5434');R(x,46,64,2,2,'#c9a24a');
     R(x,36,74,56,12,'#2f4f7a');R(x,38,76,52,8,'#3e6694');for(let i=40;i<90;i+=6)R(x,i,79,2,2,'#c9a24a');
+  }else if(room==='market'){
+    // ---- 상점가 (중세풍 야외 상점 거리) ----
+    R(x,0,0,128,30,night?'#1b1f4a':'#b9d4ea');
+    if(night){for(const [sx,sy] of [[12,4],[44,8],[80,3],[110,6]])R(x,sx,sy,1,1,'#fff8c8');x.fillStyle='#fff3b0';x.beginPath();x.arc(118,8,4,0,7);x.fill();}
+    const SH=[[0,40,'#f2e2c4','#8a3b2a','#e05a6a','#fff3e0','빵'],[42,44,'#e9dcc0','#5a3a2a','#5aa0d8','#f4fbff','약'],[88,40,'#f0d8d0','#7a3b2a','#d9b030','#fff8d8','보석']];
+    const lit=[];
+    for(const [hx,hw,wall,roof,aw,aw2] of SH){
+      x.fillStyle=roof;x.beginPath();x.moveTo(hx-1,16);x.lineTo(hx+hw/2,2);x.lineTo(hx+hw+1,16);x.closePath();x.fill();
+      R(x,hx,16,hw,46,wall);R(x,hx,16,hw,2,'#5a3a24');R(x,hx,16,2,46,'#5a3a24');R(x,hx+hw-2,16,2,46,'#5a3a24');
+      for(const wx of [hx+6,hx+hw-12]){const on=night;if(on)lit.push([wx+1,22]);R(x,wx,21,6,7,'#4a3424');R(x,wx+1,22,4,5,on?'#ffd98a':'#8fa6b8');}
+      for(let i=0;i<hw;i+=6){R(x,hx+i,32,6,6,(i/6)%2?aw:aw2);}x.fillStyle=aw;for(let i=0;i<hw;i+=6){x.beginPath();x.arc(hx+i+3,38,3,0,Math.PI);x.fill();}   // 줄무늬 차양
+      R(x,hx+4,42,hw-8,16,'#6b4426');R(x,hx+5,43,hw-10,14,night?'#ffe0a0':'#d8c8a8');   // 진열창
+      R(x,hx+3,58,hw-6,4,'#7a5236');}
+    // 진열품
+    for(const [bx,c] of [[8,'#d99a5a'],[14,'#c9803e'],[20,'#e0ae6a'],[26,'#d99a5a']]){x.fillStyle=c;x.beginPath();x.ellipse(bx+2,54,3,2,0,0,7);x.fill();}
+    for(const [bx,c] of [[50,'#7fc8f0'],[57,'#f07fb0'],[64,'#a0e08a'],[71,'#c09af0'],[78,'#7fc8f0']]){R(x,bx,50,3,6,c);R(x,bx+1,48,1,2,'#8a6a4a');}
+    for(const [bx,c] of [[96,'#ff8fbf'],[103,'#7fd6ff'],[110,'#ffe066'],[117,'#b48cff']]){x.fillStyle=c;x.beginPath();x.moveTo(bx,52);x.lineTo(bx+3,49);x.lineTo(bx+6,52);x.lineTo(bx+3,56);x.closePath();x.fill();}
+    // 걸린 간판
+    for(const [sx,c] of [[20,'#e05a6a'],[64,'#5aa0d8'],[108,'#d9b030']]){R(x,sx,19,1,3,'#3b2a46');R(x,sx-5,22,11,7,'#7a5236');R(x,sx-4,23,9,5,c);}
+    R(x,0,62,128,26,'#8a7f72');for(let j=62;j<88;j+=3)for(let i=((j/3)%2?0:3);i<128;i+=6)R(x,i,j,5,2,'#9c9184');   // 돌바닥
+    // 가로등 (밤엔 공원처럼 어두워지고 불이 켜짐)
+    R(x,40,28,2,38,'#2f2f36');R(x,37,26,8,2,'#2f2f36');R(x,38,28,6,5,night?'#fff3b0':'#d8d4c4');R(x,37,33,8,1,'#2f2f36');R(x,38,65,6,2,'#2f2f36');
+    if(night){
+      x.fillStyle='rgba(16,18,60,.45)';x.fillRect(0,0,128,88);
+      for(const [lx,ly] of lit)R(x,lx,ly,4,5,'#ffd98a');
+      R(x,38,28,6,5,'#fff3b0');
+      x.fillStyle='rgba(255,240,170,.22)';x.beginPath();x.moveTo(38,33);x.lineTo(44,33);x.lineTo(56,70);x.lineTo(26,70);x.closePath();x.fill();
+    }
   }else if(room==='street'||room==='bstreet'){
     // ---- 프로이센 거리 (18세기 · 중세풍 목조 골목) / 바덴 거리 (색만 다르게) ----
     const bd=room==='bstreet', lit=[];
@@ -888,11 +918,11 @@ function drawBerry(c){   // 딸기 장식: 머리 위 가운데, 거꾸로 (꼭�
   c.moveTo(88,29);c.lineTo(91,35);c.lineTo(94,30);c.lineTo(97,36);c.lineTo(100,30);c.lineTo(103,35);c.lineTo(106,29);c.closePath();c.fill();c.stroke();
   c.restore();
 }
-function drawArtifact(c){   // 아티팩트: 화면 기준 왼쪽 귀에만 레오나르드 눈색 보석 귀걸이
+function drawArtifact(c,pink){   // 아티팩트: 화면 기준 왼쪽 귀에만 레오나르드 눈색 보석 귀걸이 (pink: 레오나르드가 하는 루카스 눈색)
   c.save();
   for(const [ex,ey] of [[65.8,101.5]]){
-    c.fillStyle='#4f7fae';c.beginPath();c.arc(ex,ey,2.9,0,7);c.fill();
-    c.fillStyle='#a9d8f6';c.beginPath();c.arc(ex,ey,2.1,0,7);c.fill();
+    c.fillStyle=pink?'#c8407e':'#4f7fae';c.beginPath();c.arc(ex,ey,2.9,0,7);c.fill();
+    c.fillStyle=pink?'#ffa8cf':'#a9d8f6';c.beginPath();c.arc(ex,ey,2.1,0,7);c.fill();
     c.fillStyle='#ffffff';c.fillRect(ex-1.3,ey-1.4,1.1,1.1);
   }
   c.restore();
@@ -916,7 +946,14 @@ function swayBang(c,layer,amp){   // 앞머리 레이어를 위쪽 고정으로 
   c.setTransform(1,0,0,1,0,0);
 }
 const oc2=document.createElement('canvas'); oc2.width=oc2.height=192; const oc2x=oc2.getContext('2d');
-function figure(who,t){   // 앞머리 레이어가 있는 캐릭터는 흔들어서 합성
+const LEO_KEYS=['leo','leoHome','leoAcad'];
+function figure(who,t){   // 앞머리 레이어가 있는 캐릭터는 흔들어서 합성 (+ 레오나르드: 선물받은 분홍 아티팩트)
+  const f=figureBase(who,t);
+  if(!st.leoArtifact||!LEO_KEYS.includes(who)) return f;
+  if(f!==oc2){oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(f,0,0);}
+  drawArtifact(oc2x,true);return oc2;
+}
+function figureBase(who,t){
   if(who==='julia'||who==='juliaAcad'){   // 율리아: 양옆으로 늘어진 옆머리를 위쪽 고정으로 살랑살랑 (아카데미에선 교복 몸통)
     const k=.032*Math.sin(t/1000*2*Math.PI/2.6)+.008*Math.sin(t/1000*4.3), Y0=80;
     oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(imgs[who],0,0);
@@ -1192,10 +1229,10 @@ function frame(now){
 
   // ---- 그리기 ----
   ctx.imageSmoothingEnabled=false;
-  const night=isNight(); ctx.drawImage(bg(st.room,st.mode!=='sleep',night&&(st.room==='park'||st.room==='dorm'||st.room==='adorm'||st.room==='bed'||st.room==='lhouse'||st.room==='street'||st.room==='bstreet')),0,ROOM_Y);
+  const night=isNight(); ctx.drawImage(bg(st.room,st.mode!=='sleep',night&&(st.room==='park'||st.room==='dorm'||st.room==='adorm'||st.room==='bed'||st.room==='lhouse'||st.room==='street'||st.room==='bstreet'||st.room==='market')),0,ROOM_Y);
   if(night){ctx.fillStyle=NIGHT_DIM;ctx.fillRect(0,ROOM_Y,W,ROOM_H);}   // 밤: 배경만 어둡게 (캐릭터는 원래 밝기)
   ctx.save();ctx.beginPath();ctx.rect(0,ROOM_Y,W,ROOM_H);ctx.clip();
-  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(juliaHere){ctx.imageSmoothingEnabled=true;ctx.drawImage(figure(JULIA(),t),CHX+PAIR,CHY,CH,CH);} else if(princeLeo){ctx.imageSmoothingEnabled=true;ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH);if(st.mode==='pbook'||st.mode==='pnews')drawLeoReading(CHX+PAIR,st.mode==='pnews'?'news':'book');} else if(adrHere&&st.leoSwap) ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t); else if(loverHere) drawLover(CHX+PAIR,t);
+  if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(juliaHere){ctx.imageSmoothingEnabled=true;ctx.drawImage(figure(JULIA(),t),CHX+PAIR,CHY,CH,CH);} else if(princeLeo){ctx.imageSmoothingEnabled=true;ctx.drawImage(figure('leo',t),CHX+PAIR,CHY,CH,CH);if(st.mode==='pbook'||st.mode==='pnews')drawLeoReading(CHX+PAIR,st.mode==='pnews'?'news':'book');} else if(adrHere&&st.leoSwap) ctx.drawImage(figure('leo',t),CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t); else if(loverHere) drawLover(CHX+PAIR,t);
   drawLucas(t,CHX+st.lucX);
   const face=spriteKey(t).split(':')[1];
   if(face==='cry') fxTears(t);
@@ -1240,7 +1277,7 @@ function bar(ratio,col){
   const n=10, f=Math.round(Math.max(0,Math.min(1,ratio))*n);
   return `<span class="bar">${('<i style="background:'+col+'"></i>').repeat(f)}${'<i></i>'.repeat(n-f)}</span>`;
 }
-function statusHTML(it){   // it(i): 선택 항목 (0 루카스 아스카니엔 · 1 관계도 · 2 상점 · 3 악세사리)
+function statusHTML(it){   // it(i): 선택 항목 (0 루카스 아스카니엔 · 1 관계도 · 2 악세사리 · 3 소지품) — 상점은 상점가로 옮김
   const t=Date.now();
   const sleeping=st.mode==='sleep';
   const hu=TEST.hungryAfter-(t-st.lastEat), he=TEST.sickAfter-(t-st.lastSleep), me=TEST.cryAfter-(t-st.lastPet);
@@ -1263,14 +1300,14 @@ function menuItems(){
   if(st.menu==='root') return ROOT;
   if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='dish'||st.wear.gloves)&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
   if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()&&!((k==='academy'||k==='adorm')&&!ACAD_IN.includes(st.room))&&!(HOME_IN.includes(k)&&regionNow()==='home'&&!HOME_IN.includes(st.room))).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||((k==='academy'||k==='adorm')&&st.niko)?'🔒':''})),...(ACAD_IN.includes(st.room)||regionNow()!=='prussia'?[]:[{id:'acad',label:'아카데미 가기',tag:st.niko?'🔒':''}]),...(regionNow()==='home'&&!HOME_IN.includes(st.room)?[{id:'homego',label:'우리집 가기'}]:[]),{id:'map',label:'다른 지역'}];
-  if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'}];
+  if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'}];
   if(st.menu==='rel') return [{id:'relback',label:'돌아가기'}];
   if(st.menu==='inv') return [...Array(INV_MAX)].map((_,i)=>({id:'slot',i}));
   if(st.menu==='item') return [{id:'iuse',label:'사용'},{id:'igive',label:'주기'},{id:'idrop',label:'파기'}];
   if(st.menu==='mail') return [{id:'mInbox',label:'받은 편지',tag:hasUnread()?'NEW':''},{id:'mWrite',label:'편지 쓰기'},{id:'mAdd',label:'친구 추가'},{id:'mMe',label:'내 코드·이름'}];
   if(st.menu==='inbox'){const ib=st.inbox||[];return ib.length?ib.map((x,i)=>({id:'mLetter',i,label:x.from,tag:x.read?'':'●'})).reverse():[{id:'none',label:'받은 편지가 없어'}];}
   if(st.menu==='letter') return [{id:'mRead',label:'읽기'},{id:'mDrop',label:'버리기'}];
-  if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:st.owned[x.key]?'보유중':(x.lock&&x.lock())?'잠김':x.price+'G'}));
+  if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:x.item?(st.leoArtifact?'선물함':(st.inv||[]).includes(x.key)?'보유중':x.price+'G'):st.owned[x.key]?'보유중':(x.lock&&x.lock())?'잠김':x.price+'G'}));
   if(st.menu==='acc'){const ks=Object.keys(st.owned).filter(k=>st.owned[k]); return ks.length?ks.map(k=>({id:'wear',key:k,label:SHOP.find(x=>x.key===k).name,tag:st.niko&&k!=='mask'?'변장 중':st.wear[k]?'착용중':'해제'})):[{id:'none',label:'가진 악세사리가 없어'}];}
   return [];
 }
@@ -1321,7 +1358,7 @@ function setMode(m){
   if(st.menu) renderMenu();
 }
 function closeMenu(){st.menu=null;renderMenu();}
-const SHOP=[{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk},{key:'artifact',name:'아티팩트',price:0,lock:()=>!st.artifactOk},{key:'mask',name:'마스크',price:0,lock:()=>!st.maskOk},{key:'berry',name:'딸기 장식',price:0,lock:()=>!st.berryOk},{key:'bday',name:'생일 꼬깔',price:0,lock:()=>!st.bdayOk},{key:'eyemask',name:'수면 안대',price:0,lock:()=>!st.eyemaskOk}];
+const SHOP=[{key:'partifact',name:'분홍색 아티팩트',price:20000,item:true},{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk},{key:'artifact',name:'아티팩트',price:0,lock:()=>!st.artifactOk},{key:'mask',name:'마스크',price:0,lock:()=>!st.maskOk},{key:'berry',name:'딸기 장식',price:0,lock:()=>!st.berryOk},{key:'bday',name:'생일 꼬깔',price:0,lock:()=>!st.bdayOk},{key:'eyemask',name:'수면 안대',price:0,lock:()=>!st.eyemaskOk}];
 function openSub(name){st.menu=name;st.cur=0;renderMenu();beep(990,.05);}
 function doAction(m){
   if(st.menu==='choice'&&st.choice){const c=st.choice;st.choice=null;closeMenu();beep(1320,.08);c.pick(m.id);return;}
@@ -1369,6 +1406,11 @@ function doAction(m){
     st.script={i:0,lines,after:()=>setMode('idle')};say(...lines[0]);return; }
   if(m.id==='buy'){
     const it=SHOP.find(x=>x.key===m.key);
+    if(it.item){   // 소지품으로 들어가는 물건 (분홍색 아티팩트: 악세사리 아님)
+      if(st.leoArtifact||(st.inv||[]).includes(it.key)){beep(330,.08);toast('이미 가지고 있어.');return;}
+      if(st.gold<it.price){beep(220,.15);toast('골드가 부족해. ('+st.gold+'/'+it.price+'G)');return;}
+      if(!invAdd(it.key)){beep(220,.15);toast('소지품이 가득 찼어.');return;}
+      st.gold-=it.price;saveGame();renderMenu();beep(1320,.08);setTimeout(()=>beep(1760,.1),90);toast('✦ '+it.name+'을(를) 샀다! (소지품)');return;}
     if(st.owned[m.key]){beep(330,.08);toast('이미 가지고 있어.');return;}
     if(it.lock&&it.lock()){beep(220,.15);toast('아직 살 수 없어… 특별한 조건이 필요해.');return;}
     if(st.gold<it.price){beep(220,.15);toast('골드가 부족해. ('+st.gold+'/'+it.price+'G)');return;}
@@ -1395,6 +1437,7 @@ function doAction(m){
   // ---- actions ----
   if(m.id==='sleep'&&inRoom(m)&&st.niko&&st.mode!=='sleep'){beep(220,.15);toast('변장 중엔 잘 수 없어.');return;}
   if(m.id==='mail'&&inRoom(m)&&st.letterOk){openSub('mail');return;}
+  if(m.id==='browse'&&inRoom(m)){openSub('shop');return;}   // 상점가: 구경하기
   if(m.id==='gleo'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 만날 수 있어.');return;}
   if(m.id==='call'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 부를 수 있어.');return;}
   if(!avail(m)){beep(220,.15,'square',.05);toast(placeTag(m)+'에서만 할 수 있어.');return;}
@@ -1734,6 +1777,7 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
   const i=st.invSel|0, k=(st.inv||[])[i]; if(!k){closeMenu();return;}
   const take=()=>{st.inv.splice(i,1);saveGame();};
   if(act==='idrop'){take();closeMenu();beep(440,.08);toast('✦ '+ITEMS[k].name+'을(를) 버렸다.');return;}
+  if(act==='iuse'&&k==='partifact'){closeMenu();beep(220,.15);toast('내가 사용할 수 없어.');return;}
   if(act==='iuse'){closeMenu();beep(1320,.08);
     if(k==='cake'){take();st.lastEat=Math.min(Date.now(),st.lastEat+TEST.hungryAfter*.3);st.hungry=false;st.hungerAsked=false;saveGame();setMode('ceat');}   // 어디서든 먹기: 허기 3칸
     return;}
@@ -1741,6 +1785,11 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
   const leoBy=withLeoNow()||(st.room==='prince'&&!st.leo), adrBy=(st.bro&&st.room==='brother'&&!st.broAway)||(st.room==='adrroom'&&st.adrHere);
   const juliaBy=st.room==='bprince'&&!st.leo;   // 대공자 방: 율리아
   const loverBy=st.room==='lhouse'&&!st.leo;    // 동료의 집: 애인
+  if(k==='partifact'){   // 분홍색 아티팩트: 레오나르드에게만 (부르기·왕세자 방)
+    if(!leoBy){closeMenu();beep(220,.15);toast(adrBy||juliaBy||loverBy?'레오나르드에게만 줄 수 있어.':'줄 사람이 없다.');return;}
+    closeMenu();beep(1320,.08);take();st.leoArtifact=true;saveGame();setMode('leo');
+    const ln=[['모든 순간의 너를 알게 되었네.','레오나르드'],['✦ 레오나르드가 아티팩트를 곧바로 착용했다.','']];
+    st.script={i:0,lines:ln,after:()=>setMode('idle')};say(...ln[0]);return;}
   if(!leoBy&&!adrBy&&!juliaBy&&!loverBy){closeMenu();beep(220,.15);toast('줄 사람이 없다.');return;}
   closeMenu();beep(1320,.08);take();setMode('leo');
   let lines;
@@ -1792,8 +1841,9 @@ function btnA(){
   if(st.menu==='letter'){st.menu='inbox';st.cur=Math.max(0,(st.inbox||[]).length-1-(st.mailSel|0));renderMenu();beep(520,.06);return;}
   if(st.menu==='inbox'){st.menu='mail';st.cur=0;renderMenu();beep(520,.06);return;}
   if(st.menu==='mail'){st.menu='act';st.cur=0;renderMenu();beep(520,.06);return;}
-  if(st.menu==='inv'){st.menu='status';st.cur=4;renderMenu();beep(520,.06);return;}
-  if(st.menu==='shop'||st.menu==='acc'){const k=st.menu;st.menu='status';st.cur=k==='shop'?2:3;renderMenu();beep(520,.06);return;}
+  if(st.menu==='inv'){st.menu='status';st.cur=3;renderMenu();beep(520,.06);return;}
+  if(st.menu==='shop'){st.menu='act';st.cur=0;renderMenu();beep(520,.06);return;}   // 상점가 구경하기 → 행동하기로
+  if(st.menu==='acc'){st.menu='status';st.cur=2;renderMenu();beep(520,.06);return;}
   if(st.menu==='act'||st.menu==='move'||st.menu==='status'){const k=st.menu;st.menu='root';st.cur=ROOT_IDX[k];renderMenu();beep(520,.06);return;}
   if(st.menu){closeMenu();beep(520,.06);return;}
   if(st.mode!=='idle'&&st.mode!=='pet'){setMode('idle');beep(520,.06);return;}     // 기능 해제
@@ -2079,13 +2129,13 @@ function saveGame(){
   if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
-      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,badenOk:st.badenOk,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,eyemaskOk:st.eyemaskOk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,withLeo:st.withLeo,loverOk:st.loverOk,loverMailT:st.loverMailT,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
+      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,leoArtifact:st.leoArtifact,badenOk:st.badenOk,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,eyemaskOk:st.eyemaskOk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,withLeo:st.withLeo,loverOk:st.loverOk,loverMailT:st.loverMailT,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
   }catch(e){}
 }
 function loadGame(){
   try{
     const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return;
-    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','badenOk','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','eyemaskOk','sleepStart','rel','relT','withLeo','loverOk','loverMailT']) if(d[k]!==undefined) st[k]=d[k];
+    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','leoArtifact','badenOk','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','eyemaskOk','sleepStart','rel','relT','withLeo','loverOk','loverMailT']) if(d[k]!==undefined) st[k]=d[k];
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
