@@ -311,7 +311,7 @@ function drawBitmap(c,rows,pal,x,y,k=1,ol='#5a2a3a'){   // 바깥 테두리를 �
   c.fillStyle=ol;for(let j=-1;j<=rows.length;j++)for(let i=-1;i<=rows[0].length;i++)if(!on(i,j)&&(on(i-1,j)||on(i+1,j)||on(i,j-1)||on(i,j+1)))c.fillRect(x+i*k,y+j*k,k,k);
   rows.forEach((r,j)=>{for(let i=0;i<r.length;i++)if(pal[r[i]]){c.fillStyle=pal[r[i]];c.fillRect(x+i*k,y+j*k,k,k);}});
 }
-const ITEMS={partifact:{name:'분홍색 아티팩트',icon:(()=>{const c=document.createElement('canvas');c.width=18;c.height=16;const x=c.getContext('2d');x.fillStyle='#5a2a4a';x.beginPath();x.arc(9,8,6,0,7);x.fill();x.fillStyle='#e0569a';x.beginPath();x.arc(9,8,5,0,7);x.fill();x.fillStyle='#ffb3d6';x.beginPath();x.arc(9,8,3.4,0,7);x.fill();x.fillStyle='#fff';x.fillRect(6,5,2,2);return c.toDataURL();})()},
+const ITEMS={flower:{name:'꽃',icon:SPR.flower||''},partifact:{name:'분홍색 아티팩트',icon:(()=>{const c=document.createElement('canvas');c.width=18;c.height=16;const x=c.getContext('2d');x.fillStyle='#5a2a4a';x.beginPath();x.arc(9,8,6,0,7);x.fill();x.fillStyle='#e0569a';x.beginPath();x.arc(9,8,5,0,7);x.fill();x.fillStyle='#ffb3d6';x.beginPath();x.arc(9,8,3.4,0,7);x.fill();x.fillStyle='#fff';x.fillRect(6,5,2,2);return c.toDataURL();})()},
   cake:{name:'생일 케이크',icon:(()=>{const c=document.createElement('canvas');c.width=18;c.height=16;drawBitmap(c.getContext('2d'),CAKE,CAKE_PAL,1,1);return c.toDataURL();})()}};
 function invAdd(k){st.inv=st.inv||[];if(st.inv.length>=INV_MAX)return false;st.inv.push(k);saveGame();return true;}
 const ROOT=[
@@ -1344,7 +1344,7 @@ function menuItems(){
   if(st.menu==='mail') return [{id:'mInbox',label:'받은 편지',tag:hasUnread()?'NEW':''},{id:'mWrite',label:'편지 쓰기'},{id:'mAdd',label:'친구 추가'},{id:'mMe',label:'내 코드·이름'}];
   if(st.menu==='inbox'){const ib=st.inbox||[];return ib.length?ib.map((x,i)=>({id:'mLetter',i,label:x.from,tag:x.read?'':'●'})).reverse():[{id:'none',label:'받은 편지가 없어'}];}
   if(st.menu==='letter') return [{id:'mRead',label:'읽기'},{id:'mDrop',label:'버리기'}];
-  if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:x.item?(st.leoArtifact?'선물함':(st.inv||[]).includes(x.key)?'보유중':x.price+'G'):st.owned[x.key]?'보유중':(x.lock&&x.lock())?'잠김':x.price+'G'}));
+  if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:x.item?(x.multi?x.price+'G':st.leoArtifact?'선물함':(st.inv||[]).includes(x.key)?'보유중':x.price+'G'):st.owned[x.key]?'보유중':(x.lock&&x.lock())?'잠김':x.price+'G'}));
   if(st.menu==='acc'){const ks=Object.keys(st.owned).filter(k=>st.owned[k]); return ks.length?ks.map(k=>({id:'wear',key:k,label:SHOP.find(x=>x.key===k).name,tag:st.niko&&k!=='mask'?'변장 중':st.wear[k]?'착용중':'해제'})):[{id:'none',label:'가진 악세사리가 없어'}];}
   return [];
 }
@@ -1395,7 +1395,7 @@ function setMode(m){
   if(st.menu) renderMenu();
 }
 function closeMenu(){st.menu=null;renderMenu();}
-const SHOP=[{key:'partifact',name:'분홍색 아티팩트',price:20000,item:true},{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk},{key:'artifact',name:'아티팩트',price:0,lock:()=>!st.artifactOk},{key:'mask',name:'마스크',price:0,lock:()=>!st.maskOk},{key:'berry',name:'딸기 장식',price:0,lock:()=>!st.berryOk},{key:'bday',name:'생일 꼬깔',price:0,lock:()=>!st.bdayOk},{key:'eyemask',name:'수면 안대',price:0,lock:()=>!st.eyemaskOk}];
+const SHOP=[{key:'partifact',name:'분홍색 아티팩트',price:20000,item:true},{key:'flower',name:'꽃',price:5000,item:true,multi:true},{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk},{key:'artifact',name:'아티팩트',price:0,lock:()=>!st.artifactOk},{key:'mask',name:'마스크',price:0,lock:()=>!st.maskOk},{key:'berry',name:'딸기 장식',price:0,lock:()=>!st.berryOk},{key:'bday',name:'생일 꼬깔',price:0,lock:()=>!st.bdayOk},{key:'eyemask',name:'수면 안대',price:0,lock:()=>!st.eyemaskOk}];
 function openSub(name){st.menu=name;st.cur=0;renderMenu();beep(990,.05);}
 function doAction(m){
   if(st.menu==='choice'&&st.choice){const c=st.choice;st.choice=null;closeMenu();beep(1320,.08);c.pick(m.id);return;}
@@ -1446,7 +1446,7 @@ function doAction(m){
   if(m.id==='buy'){
     const it=SHOP.find(x=>x.key===m.key);
     if(it.item){   // 소지품으로 들어가는 물건 (분홍색 아티팩트: 악세사리 아님)
-      if(st.leoArtifact||(st.inv||[]).includes(it.key)){beep(330,.08);toast('이미 가지고 있어.');return;}
+      if(!it.multi&&(st.leoArtifact||(st.inv||[]).includes(it.key))){beep(330,.08);toast('이미 가지고 있어.');return;}
       if(st.gold<it.price){beep(220,.15);toast('골드가 부족해. ('+st.gold+'/'+it.price+'G)');return;}
       if(!invAdd(it.key)){beep(220,.15);toast('소지품이 가득 찼어.');return;}
       st.gold-=it.price;saveGame();renderMenu();beep(1320,.08);setTimeout(()=>beep(1760,.1),90);toast('✦ '+it.name+'을(를) 샀다! (소지품)');return;}
@@ -1817,7 +1817,7 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
   const i=st.invSel|0, k=(st.inv||[])[i]; if(!k){closeMenu();return;}
   const take=()=>{st.inv.splice(i,1);saveGame();};
   if(act==='idrop'){take();closeMenu();beep(440,.08);toast('✦ '+ITEMS[k].name+'을(를) 버렸다.');return;}
-  if(act==='iuse'&&k==='partifact'){closeMenu();beep(220,.15);toast('내가 사용할 수 없어.');return;}
+  if(act==='iuse'&&(k==='partifact'||k==='flower')){closeMenu();beep(220,.15);toast('내가 사용할 수 없어.');return;}
   if(act==='iuse'){closeMenu();beep(1320,.08);
     if(k==='cake'){take();dqEvent('cakeEat');st.lastEat=Math.min(Date.now(),st.lastEat+TEST.hungryAfter*.3);st.hungry=false;st.hungerAsked=false;saveGame();setMode('ceat');}   // 어디서든 먹기: 허기 3칸
     return;}
@@ -1830,6 +1830,16 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
     closeMenu();beep(1320,.08);take();st.leoArtifact=true;saveGame();setMode('leo');
     const ln=[['모든 순간의 너를 알게 되었네.','레오나르드'],['✦ 레오나르드가 아티팩트를 곧바로 착용했다.','']];
     st.script={i:0,lines:ln,after:()=>setMode('idle')};say(...ln[0]);return;}
+  if(k==='flower'){   // 꽃: 레오나르드(왕세자 방·부르기)·율리아(대공자 방)·아드리안(아드리안 방)·애인(동료의 집)에게만 / 호감도가 있는 인물(레오나르드·아드리안)은 +2
+    const adrNow=st.room==='adrroom'&&st.adrHere;
+    if(!leoBy&&!juliaBy&&!loverBy&&!adrNow){closeMenu();beep(220,.15);toast('줄 사람이 없다.');return;}
+    closeMenu();beep(1320,.08);take();setMode('leo');
+    let fl;
+    if(loverBy) fl=[['평소에도 웃는 낯이지만 이렇게까지 환하게 웃는 것은 처음이다.','루카스']];
+    else if(juliaBy) fl=[['신호라고 받아들이면 돼?','율리아']];
+    else if(leoBy){st.rel=Math.min(REL_MAX,st.rel+2);st.relT=Date.now();fl=[['고마워. 하지만 내가 더 아름답게 피워줄 수 있어.','레오나르드'],['✦ 레오나르드와의 관계가 2 올랐다.','']];}
+    else{st.adrRel=Math.min(REL_MAX,(st.adrRel|0)+2);fl=[['루카 형은 정말 기뻐.','아드리안'],['✦ 아드리안과의 관계가 2 올랐다.','']];}
+    saveGame();st.script={i:0,lines:fl,after:()=>setMode('idle')};say(...fl[0]);return;}
   if(!leoBy&&!adrBy&&!juliaBy&&!loverBy){closeMenu();beep(220,.15);toast('줄 사람이 없다.');return;}
   closeMenu();beep(1320,.08);take();setMode('leo');
   let lines;
