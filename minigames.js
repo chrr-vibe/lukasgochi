@@ -198,7 +198,7 @@ const MG2=(()=>{
 // 야바위 (아카데미 기숙사 · 엘리아스): 하·중·상 3판 (top이면 최고 난이도 1판). 동전이 든 컵을 보여준 뒤 섞고, ◀▶로 고른 뒤 가운데로 확인. 틀리면 그 자리에서 끝
 const MG5=(()=>{
   const r=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w|0,h|0);};
-  const LV=[{n:'하',swaps:5,dur:480},{n:'중',swaps:14,dur:210},{n:'상',swaps:20,dur:210}], TOP=[{n:'최고',swaps:20,dur:150}], SX=[34,64,94];
+  const LV=[{n:'하',swaps:5,dur:480},{n:'중',swaps:14,dur:320},{n:'상',swaps:20,dur:210}], TOP=[{n:'최고',swaps:20,dur:150}], SX=[34,64,94];
   let s=null;
   function newRound(){s.round++;s.slot=[0,1,2];s.coin=Math.random()*3|0;s.cur=1;s.swaps=[];
     for(let i=0;i<s.lv[s.round-1].swaps;i++){const a=Math.random()*3|0,b=(a+1+(Math.random()*2|0))%3;s.swaps.push([a,b]);}

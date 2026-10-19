@@ -1277,7 +1277,7 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
     if(loverBy) fl=[['평소에도 웃는 낯이지만 이렇게까지 환하게 웃는 것은 처음이다.','루카스']];
     else if(juliaBy) fl=[['신호라고 받아들이면 돼?','율리아']];
     else if(leoBy){st.rel=Math.min(REL_MAX,st.rel+2);st.relT=Date.now();fl=[['고마워. 하지만 내가 더 아름답게 피워줄 수 있어.','레오나르드'],['✦ 레오나르드와의 관계가 2 올랐다.','']];}
-    else{st.adrRel=Math.min(REL_MAX,(st.adrRel|0)+2);fl=[['루카 형은 정말 기뻐.','아드리안'],['✦ 아드리안과의 관계가 2 올랐다.','']];}
+    else{st.adrRel=Math.min(REL_MAX,(st.adrRel|0)+2);fl=[['내게 주는 거니? 이 형은 정말 기쁘구나.','아드리안'],['✦ 아드리안과의 관계가 2 올랐다.','']];}
     saveGame();st.script={i:0,lines:fl,after:()=>setMode('idle')};say(...fl[0]);return;}
   if(!leoBy&&!adrBy&&!juliaBy&&!loverBy){closeMenu();beep(220,.15);toast('줄 사람이 없다.');return;}
   closeMenu();beep(1320,.08);take();setMode('leo');
