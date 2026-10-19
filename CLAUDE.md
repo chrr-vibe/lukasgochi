@@ -12,6 +12,7 @@
 - `sprites.js`: base64 스프라이트 데이터(`const SPR = {...}`, `SPR.xxx = "data:image/png;base64,..."`). 약 1.6MB — **새 그림을 넣거나 바꿀 때만 열 것.** 평소엔 읽지 말고 `grep -o '^SPR\.[A-Za-z.]*' sprites.js` 정도로 키 이름만 확인.
   - index.html이 `<script src="sprites.js">`로 먼저 불러오고, 본 스크립트에서 `load(key, SPR.key)`로 이미지를 등록함.
 - `backgrounds.js`: 배경 그리기 코드 (방 그림 `makeRoom`/`recolorRoom`, 페이지 배경 프리셋 `PAGE_BG`). index.html이 본 스크립트 중간에 `<script src="backgrounds.js">`로 같은 순서로 불러옴. **배경 그림을 추가/수정하는 작업이 아니면 열지 말 것.**
+- `minigames.js`: 미니게임 코드 (`MG` 형의 방 탈출 리듬, `MG3` 플레로마 잡기, `MG4` 기억 결투, `MG2` 이심전심 — 전역 const). index.html이 본 스크립트를 "미니게임" 구간에서 끊고 `<script src="minigames.js">`로 같은 순서로 불러옴. 결과/보상/대사 로직(`lgameEnd`, `plEnd`, `duelEnd`, `escapeStart` 등)은 index.html에 남아 있음. **미니게임 자체를 수정하는 작업이 아니면 열지 말 것.**
 - `sw.js`: 오프라인 캐시. 배포할 때마다 `VERSION`을 올릴 것. 새 정적 파일이 생기면 `CORE` 목록에 추가.
 - `firestore.rules`: 친구 편지 기능용 Firestore 보안 규칙 (Firebase 콘솔에 붙여넣기).
 - 업데이트 알림: `index.html`의 `UPDATE_LOG` 맨 위에 `{id, t:'YY.MM.DD HH:MM', text}` 추가 (사용자가 "*알림주기"라고 할 때).
