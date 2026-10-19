@@ -912,7 +912,6 @@ function frame(now){
   retro();
   gctx.clearRect(0,0,W,H);gctx.drawImage(lcd,0,0);
 }
-requestAnimationFrame(frame);
 
 /* ================= menu / dialog ================= */
 const eventModal=document.getElementById('eventModal'), clockEl=document.getElementById('clock'), eggHolder=document.getElementById('eggHolder'), warnModal=document.getElementById('warnModal'), deadModal=document.getElementById('deadModal'), broTimer=document.getElementById('broTimer'), menuEl=document.getElementById('menu'),dlgEl=document.getElementById('dialog'),dtext=document.getElementById('dtext'),nmEl=dlgEl.querySelector('.nm');
@@ -1854,6 +1853,7 @@ setTimeout(()=>{try{loverMailTick();}catch(e){}},3000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){try{npcMailTick();fbCheckMail(false);}catch(e){}}});   // 돌아왔을 때 1시간 지났으면
 window.addEventListener('online',()=>{try{fbStart().then(()=>fbCheckMail(false));}catch(e){}});
 
+requestAnimationFrame(frame);
 </script>
 <script>
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
