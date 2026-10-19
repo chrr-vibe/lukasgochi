@@ -247,9 +247,9 @@ for(const o in SPR.outfits) for(const k in SPR.outfits[o]) load(o+':'+k,SPR.outf
 
 /* ================= data ================= */
 const PLACES={bed:'내 방',living:'거실',library:'도서관',park:'공원',kitchen:'주방',brother:'형의 방',dorm:'기숙사',
-  garden:'전정',hall:'그레이트 홀',nikolaus:'니콜라우스 방',prince:'왕세자 방',street:'프로이센 거리',academy:'아카데미',aliving:'거실',adrroom:'아드리안 방',bstreet:'바덴 거리',bprince:'대공자 방',lhouse:'동료의 집'};
+  garden:'전정',hall:'그레이트 홀',nikolaus:'니콜라우스 방',prince:'왕세자 방',street:'프로이센 거리',academy:'아카데미',adorm:'기숙사',aliving:'거실',adrroom:'아드리안 방',bstreet:'바덴 거리',bprince:'대공자 방',lhouse:'동료의 집'};
 // 지역: 우리 동네 / 바이에른 궁 (이동하기는 같은 지역 안에서만, 다른 지역은 지도로)
-const REGION_OF={bed:'home',living:'home',library:'home',park:'home',kitchen:'home',brother:'home',dorm:'home',garden:'bavaria',hall:'bavaria',nikolaus:'bavaria',prince:'bavaria',street:'prussia',academy:'prussia',aliving:'anhalt',adrroom:'anhalt',bstreet:'baden',bprince:'baden',lhouse:'home'};
+const REGION_OF={bed:'home',living:'home',library:'home',park:'home',kitchen:'home',brother:'home',dorm:'home',garden:'bavaria',hall:'bavaria',nikolaus:'bavaria',prince:'bavaria',street:'prussia',academy:'prussia',adorm:'prussia',aliving:'anhalt',adrroom:'anhalt',bstreet:'baden',bprince:'baden',lhouse:'home'};
 const HIDDEN_PLACES=['brother','dorm'];
 const FAME_MAX=10, FAME_DECAY=24*60*60*1000;   // 명성: 니콜라우스 방 해금 뒤 플레로마 소탕마다 +1, 실제 24시간마다 -1
 const PL_UNLOCK=5, ANHALT_MEET=10, PL_CHANCE=.3;   // 플레로마 5번 소탕 → 니콜라우스 방 / 아드리안 10번 만나면 → 안할트
@@ -266,7 +266,7 @@ function withRo(w){const c=w.charCodeAt(w.length-1)-0xAC00;if(c<0||c>11171)retur
 const ACTS=[
   {id:'book', label:'책 읽기',        room:'living'},
   {id:'news', label:'신문 읽기',      room:'bed'},
-  {id:'sleep',label:'잠자기',         room:['bed','nikolaus']},   // 니콜라우스 방에서도 (변장 중엔 X)
+  {id:'sleep',label:'잠자기',         room:['bed','nikolaus','adorm']},   // 니콜라우스 방에서도 (변장 중엔 X)
   {id:'eat',  label:'밥 먹기',        room:'living'},
   {id:'leo',  label:'레오나르드 만나기',room:['library','park']},
   {id:'eli',  label:'엘리아스 만나기',  room:'park'},
@@ -274,7 +274,7 @@ const ACTS=[
   {id:'heal', label:'치료 받기',      room:'bed'},
   {id:'explore',label:'탐색하기',     room:'brother'},
   {id:'sync',  label:'이심전심',     room:'dorm'},      // 잠입 중: 에라스미오스와 같은 하트 고르기 (한 번)   // 형의 방에서 할 수 있는 유일한 행동   // 레오나르드와 함께 있고 독약 상태일 때만
-  {id:'think',label:'사색하기',       room:['park','garden','aliving']},
+  {id:'think',label:'사색하기',       room:['park','garden','aliving','adorm']},
   {id:'pexplore',label:'탐색하기',   room:'street'},
   {id:'await',label:'기다리기',      room:'academy'},   // 아카데미: 엘리아스·율리아·레오나르드 각 30% (레오나르드 → 기억 결투 미니게임)
   {id:'bexplore',label:'탐색하기',   room:'bstreet'},    // 바덴 거리: 미니게임 없음, 10% 레오나르드가 데리러 옴
@@ -528,7 +528,7 @@ function makeRoom(room,lampOn,night){
     R(x,30,72,68,15,'#7a1f2b');R(x,32,74,64,11,'#a3343f');R(x,36,76,56,7,'#1f3a5a');R(x,38,77,52,5,'#a3343f');
     for(let i=40;i<90;i+=6){R(x,i,79,2,1,'#e3c77a');}R(x,62,78,4,3,'#e3c77a');
     for(let i=31;i<98;i+=3){R(x,i,71,1,1,'#efe3c8');R(x,i,87,1,1,'#efe3c8');}
-  }else if(room==='dorm'){
+  }else if(room==='dorm'||room==='adorm'){
     // ---- 판타지 기숙사 ----
     R(x,0,0,128,54,'#5e6a8a');                                       // stone wall
     for(let j=0;j<54;j+=6)for(let i=((j/6)%2?0:8);i<128;i+=16){R(x,i,j,16,1,'#4c5675');R(x,i,j,1,6,'#4c5675');R(x,i+1,j+1,14,1,'#6c7898');}
@@ -1162,6 +1162,9 @@ function frame(now){
   else if(st.mode==='think' && el>TEST.timed && st.room==='garden'){ setMode('talk'); say('이런 걸 보고 자라서 그렇게 생겼나?'); }
   else if(st.mode==='think' && el>TEST.timed && isNight() && st.room==='park' && Math.random()<ROB_CHANCE){   // 밤 공원: 불량배에게 골드 전부
     const firstMask=!st.maskOk; st.gold=0;st.maskOk=true;saveGame();setMode('leo');st.script={i:0,lines:[['가진 거 다 내놔.','불량배'],['살다살다 삥을 뜯겨본다...','루카스']],after:()=>{setMode('idle');if(firstMask)toast('✦ 마스크 해금! (상점)',2000);}};say('가진 거 다 내놔.','불량배'); }
+  else if(st.mode==='think' && el>TEST.timed && st.room==='adorm' && Math.random()<.3){   // 아카데미 기숙사: 30% 레오나르드가 보고 간다 → 허기·멘탈·건강 전부 회복
+    const n=Date.now();st.lastEat=n;st.lastPet=n;st.lastSleep=n;st.hungry=false;st.hungerAsked=false;st.sick=false;st.cry=false;saveGame();
+    setMode('talk');say('레오나르드가 나를 빤히 쳐다보다 갔다. 왠지 몸이 가벼워졌다.','');beep(1320,.08); }
   else if(st.mode==='think' && el>TEST.timed){ setMode('talk'); if(Math.random()<.5){st.gold+=100;saveGame();say('✦ 사색하다 100골드를 주웠다! (+100G)','');} else say('좋은 사색이었다.'); }
   else if(st.mode==='cook' && el>3000){ const ok=Math.random()<(st.wear.chef?.5:COOK_OK);   // 요리사 모자: 성공 50%
     st.cookOk=ok?(st.cookOk|0)+1:0; const glove=st.cookOk>=GLOVE_STREAK&&!st.glovesOk; if(glove)st.glovesOk=true; st.lastCook=ok?'ok':'fail'; const cake=st.wear.bday; let cakeIn=false; if(ok&&cake)cakeIn=invAdd('cake'); else if(ok)st.gold+=100; st.pickFace=ok?'smile':'idle'; setMode('pick'); const chef=st.cookStreak>=CHEF_STREAK&&!st.chefOk; if(chef)st.chefOk=true; say((ok?(cake?(cakeIn?'✦ 케이크를 만들었다! (소지품)':'✦ 케이크를 만들었지만 소지품이 가득 찼다…'):'✦ 성공했다! (+100G)'):'✦ 실패했다…')+(chef?' ✦ 요리사 모자 해금! (상점)':'')+(glove?' ✦ 고무장갑 해금! (상점)':''),''); saveGame(); }
@@ -1184,7 +1187,7 @@ function frame(now){
 
   // ---- 그리기 ----
   ctx.imageSmoothingEnabled=false;
-  const night=isNight(); ctx.drawImage(bg(st.room,st.mode!=='sleep',night&&(st.room==='park'||st.room==='dorm'||st.room==='bed'||st.room==='lhouse'||st.room==='street'||st.room==='bstreet')),0,ROOM_Y);
+  const night=isNight(); ctx.drawImage(bg(st.room,st.mode!=='sleep',night&&(st.room==='park'||st.room==='dorm'||st.room==='adorm'||st.room==='bed'||st.room==='lhouse'||st.room==='street'||st.room==='bstreet')),0,ROOM_Y);
   if(night){ctx.fillStyle=NIGHT_DIM;ctx.fillRect(0,ROOM_Y,W,ROOM_H);}   // 밤: 배경만 어둡게 (캐릭터는 원래 밝기)
   ctx.save();ctx.beginPath();ctx.rect(0,ROOM_Y,W,ROOM_H);ctx.clip();
   if(st.leo) drawLeo(CHX+PAIR+st.leo.off,t); else if(juliaHere){ctx.imageSmoothingEnabled=true;ctx.drawImage(figure(JULIA(),t),CHX+PAIR,CHY,CH,CH);} else if(princeLeo){ctx.imageSmoothingEnabled=true;ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH);if(st.mode==='pbook'||st.mode==='pnews')drawLeoReading(CHX+PAIR,st.mode==='pnews'?'news':'book');} else if(adrHere&&st.leoSwap) ctx.drawImage(imgs.leo,CHX+PAIR,CHY,CH,CH); else if(adrHere) drawAdr(CHX+PAIR,t); else if(erasHere) drawEras(CHX+PAIR,t); else if(leoHome) drawLeoHome(CHX+PAIR,t); else if(loverHere) drawLover(CHX+PAIR,t);
@@ -1254,7 +1257,7 @@ function menuItems(){
   if(st.menu==='choice') return st.choice?st.choice.opts.map(([id,label])=>({id,label})):[{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
   if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='dish'||st.wear.gloves)&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
-  if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||(k==='academy'&&st.niko)?'🔒':''})),{id:'map',label:'다른 지역'}];
+  if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||((k==='academy'||k==='adorm')&&st.niko)?'🔒':''})),{id:'map',label:'다른 지역'}];
   if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'}];
   if(st.menu==='rel') return [{id:'relback',label:'돌아가기'}];
   if(st.menu==='inv') return [...Array(INV_MAX)].map((_,i)=>({id:'slot',i}));
@@ -1374,7 +1377,7 @@ function doAction(m){
   if(m.id==='go'&&nikoBare()&&!NIKO_BARE.includes(m.to)){beep(220,.15);toast('마스크를 써야 갈 수 있어.');return;}
   if(m.id==='map'){closeMenu();beep(990,.06);st.map={cur:Math.max(0,MAP_NODES.findIndex(n=>n.id===regionNow())),t0:performance.now()};return;}
   if(m.id==='go'&&m.to==='lhouse'&&!st.loverOk){closeMenu();beep(990,.05);pwOpen();return;}   // 동료의 집: 처음 한 번만 비밀번호
-  if(m.id==='go'&&m.to==='academy'&&st.niko){beep(220,.15);toast('니콜라우스로는 아카데미에 갈 수 없어.');return;}
+  if(m.id==='go'&&(m.to==='academy'||m.to==='adorm')&&st.niko){beep(220,.15);toast('니콜라우스로는 아카데미에 갈 수 없어.');return;}
   if(m.id==='go'){st.cookStreak=0;closeMenu();beep(1320,.08);setMode('idle');st.leo=null;if(st.withLeo){st.withLeo=false;saveGame();}st.trans=.01;st.transTo=m.to;return;}
   // ---- actions ----
   if(m.id==='sleep'&&inRoom(m)&&st.niko&&st.mode!=='sleep'){beep(220,.15);toast('변장 중엔 잘 수 없어.');return;}
@@ -2076,7 +2079,7 @@ function loadGame(){
     if(!SPR.outfits[st.outfit]) st.outfit='basic';
     customBgURL=localStorage.getItem(SAVE_KEY+':bg');
     if(st.bg.type==='custom'&&!customBgURL) st.bg={type:'preset',i:0};
-    if(d.sleeping && (st.room==='bed'||st.room==='nikolaus'||st.room==='lhouse') && !st.niko){st.mode='sleep';}
+    if(d.sleeping && (st.room==='bed'||st.room==='nikolaus'||st.room==='lhouse'||st.room==='adorm') && !st.niko){st.mode='sleep';}
   }catch(e){}
 }
 
@@ -2131,6 +2134,7 @@ document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
 // 업데이트 내역: *알림주기 할 때마다 맨 위에 추가 (가장 최근 것이 접속 시 알림으로 한 번 뜸)
 const UPDATE_LOG=[
+  {id:'n12',t:'26.10.19 10:30',text:'기숙사 추가'},
   {id:'n11',t:'26.10.19 10:07',text:'설거지 추가'},
   {id:'n10',t:'26.10.18 22:58',text:'아카데미 추가'},
   {id:'n9',t:'26.10.18 21:05',text:'니콜라우스의 활약 추가'},
