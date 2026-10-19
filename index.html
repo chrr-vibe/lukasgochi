@@ -1163,9 +1163,9 @@ function frame(now){
   else if(st.mode==='think' && el>TEST.timed && st.room==='garden'){ setMode('talk'); say('이런 걸 보고 자라서 그렇게 생겼나?'); }
   else if(st.mode==='think' && el>TEST.timed && isNight() && st.room==='park' && Math.random()<ROB_CHANCE){   // 밤 공원: 불량배에게 골드 전부
     const firstMask=!st.maskOk; st.gold=0;st.maskOk=true;saveGame();setMode('leo');st.script={i:0,lines:[['가진 거 다 내놔.','불량배'],['살다살다 삥을 뜯겨본다...','루카스']],after:()=>{setMode('idle');if(firstMask)toast('✦ 마스크 해금! (상점)',2000);}};say('가진 거 다 내놔.','불량배'); }
-  else if(st.mode==='think' && el>TEST.timed && st.room==='adorm' && Math.random()<.3){   // 아카데미 기숙사: 30% 레오나르드가 보고 간다 → 허기·멘탈·건강 전부 회복
+  else if(st.mode==='think' && el>TEST.timed && st.room==='adorm' && Math.random()<.3){   // 아카데미 기숙사: 30% 레오나르드(교복)가 등장 → 허기·멘탈·건강 전부 회복
     const n=Date.now();st.lastEat=n;st.lastPet=n;st.lastSleep=n;st.hungry=false;st.hungerAsked=false;st.sick=false;st.cry=false;saveGame();
-    setMode('talk');say('레오나르드가 나를 빤히 쳐다보다 갔다. 왠지 몸이 가벼워졌다.','');beep(1320,.08); }
+    st.leo=null;setMode('leo');st.leo={who:imgs.leoAcad.naturalWidth?'leoAcad':'leo',phase:'enter',t0:performance.now(),lines:[['레오나르드가 나를 빤히 쳐다보다 갔다. 왠지 몸이 가벼워졌다.','']],i:0,off:70}; }
   else if(st.mode==='think' && el>TEST.timed){ setMode('talk'); if(Math.random()<.5){st.gold+=100;saveGame();say('✦ 사색하다 100골드를 주웠다! (+100G)','');} else say('좋은 사색이었다.'); }
   else if(st.mode==='cook' && el>3000){ const ok=Math.random()<(st.wear.chef?.5:COOK_OK);   // 요리사 모자: 성공 50%
     st.cookOk=ok?(st.cookOk|0)+1:0; const glove=st.cookOk>=GLOVE_STREAK&&!st.glovesOk; if(glove)st.glovesOk=true; st.lastCook=ok?'ok':'fail'; const cake=st.wear.bday; let cakeIn=false; if(ok&&cake)cakeIn=invAdd('cake'); else if(ok)st.gold+=100; st.pickFace=ok?'smile':'idle'; setMode('pick'); const chef=st.cookStreak>=CHEF_STREAK&&!st.chefOk; if(chef)st.chefOk=true; say((ok?(cake?(cakeIn?'✦ 케이크를 만들었다! (소지품)':'✦ 케이크를 만들었지만 소지품이 가득 찼다…'):'✦ 성공했다! (+100G)'):'✦ 실패했다…')+(chef?' ✦ 요리사 모자 해금! (상점)':'')+(glove?' ✦ 고무장갑 해금! (상점)':''),''); saveGame(); }
