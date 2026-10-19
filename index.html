@@ -242,6 +242,7 @@ const PIV=76, BX0=70, BX1=124;
 const imgs={}; let loaded=0,total=0;
 function load(k,src){total++;const im=new Image();im.onload=()=>loaded++;im.src=src;imgs[k]=im;}
 load('bang',SPR.bang); load('tail',SPR.tail); load('leo',SPR.leo); load('glasses',SPR.glasses); load('drunk',SPR.drunk); load('eli',SPR.eli); load('monocle',SPR.monocle); load('heart',SPR.heart); load('leoHome',SPR.leoHome); load('leoGlasses',SPR.leoGlasses); load('niko',SPR.niko); load('julia',SPR.julia); load('leoAcad',SPR.leoAcad); load('juliaAcad',SPR.juliaAcad); load('juliaLockL',SPR.juliaLockL); load('juliaLockR',SPR.juliaLockR); load('nikoBang',SPR.nikoBang); load('nikoMask',SPR.nikoMask); load('leoBook',SPR.leoBook); load('adr',SPR.adr); load('broHead',SPR.broHead); for(const k of ['heart','broHead','leoHome','adr']) load(k+'Bang',SPR[k+'Bang']); load('jerome',SPR.jerome); load('jeromeBang',SPR.jeromeBang); load('onesie',SPR.onesie); load('mask',SPR.mask); load('gloves',SPR.gloves); if(SPR.eras){load('eras',SPR.eras); if(SPR.erasBang) load('erasBang',SPR.erasBang);}
+if(SPR.readNews) load('readNews',SPR.readNews);   // 루카스 신문 읽기: 신문만 (옷 위에 얹음)
 for(const k of ['lover','loverLockL','loverLockR','loverSleep','loverSleepLockL','loverSleepLockR']) if(SPR[k]) load(k,SPR[k]);   // 동료의 집: 애인 (깨어 있을 때 / 같이 잘 때)
 for(const o in SPR.outfits) for(const k in SPR.outfits[o]) load(o+':'+k,SPR.outfits[o][k]);
 
@@ -787,8 +788,7 @@ function spriteKey(t){
   switch(st.mode){
     case 'eat': case 'taste': case 'ceat': return o+':'+((t/230|0)%2?'eat1':'eat0');
     case 'pet':   return o+':smile';
-    case 'book': case 'read': return o+':book';
-    case 'news':  return o+':news';
+    case 'book': case 'read': case 'news': return o+':idle';   // 책·신문은 옷 그림 위에 얹음 (drawLucas)
     case 'sleep': return 'pajama:sleep';
     case 'think': return o+':think';
     case 'cook': case 'dish':  return o+':idle';
@@ -947,6 +947,8 @@ function drawLucas(t,x){
   const bunny=!disguise && st.wear.bunny;
   if(bunny){ if(key==='broLuc') octx.clearRect(0,ONESIE_TOP,192,192-ONESIE_TOP); octx.drawImage(imgs.onesie,0,0); }
   if(!disguise && st.wear.gloves) octx.drawImage(imgs.gloves,0,0);
+  if(!heart && ['book','news','read'].includes(st.mode)){   // 레오나르드·애인이 읽을 때처럼 캐릭터·옷 위에 그냥 얹음
+    if(st.mode==='news') octx.drawImage(imgs.readNews,0,0); else octx.drawImage(imgs.leoBook,68,123,55,37);}
   if(!heart && isDrunk() && !['sleep','eat','taste'].includes(st.mode)) octx.drawImage(imgs.drunk,0,0);
   if(!disguise && st.wear.monocle && (heart || !['book','news','read'].includes(st.mode))) octx.drawImage(imgs.monocle,0,0);   // 독서용 안경 쓸 땐 벗음
   if(!disguise && st.wear.mask && !['eat','taste','ceat'].includes(st.mode)) octx.drawImage(imgs.mask,0,0);
