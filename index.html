@@ -146,7 +146,7 @@ html,body{height:auto;min-height:100%}
 .egg-scale .btn.down,.egg-scale .btn:active{background:rgba(60,20,40,.14);filter:none}
 .egg-scale .btn:not(.dial){width:52px;height:52px;margin:-6px 0 0 -6px}   /* 누르는 범위를 넓게 (가운데 그대로) */
 .btn{touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}   /* 누른 채 손가락이 살짝 움직여도 스크롤로 취소되지 않게 */
-.test button[data-theme]{min-width:44px}
+.test button[data-theme]{min-width:38px}
 .test .row{flex-wrap:wrap}.test{width:330px}
 #menu .it{line-height:15px}
 </style>
@@ -193,6 +193,7 @@ html,body{height:auto;min-height:100%}
       <button data-theme="3">3</button>
       <button data-theme="4">4</button>
       <button data-theme="5">5</button>
+      <button data-theme="6">6</button>
     </div>
   </div>
   <div class="copy">© 나나곰 쿠키</div>
@@ -1208,10 +1209,20 @@ const ACADEMY_JULIA=[
   [['여기서 만나네. 바덴의 아카데미가 더 아름다운데.','율리아'],['비교하러 온 거야?','루카스'],['너를 데려가려고 온 거지.','율리아']],
   [['아직도 레오나르드 곁에 있어?','율리아'],['…그게 무슨 상관인데.','루카스'],['상관있지. 나는 기다리는 걸 잘 못하거든.','율리아']],
   [['이 복도 끝까지 같이 걸을래?','율리아'],['끝에 뭐가 있는데.','루카스'],['바덴으로 가는 마차.','율리아']]];
-function shellEnd(ok){   // 야바위 결과: 세 판 다 맞히면 +1000G, 하나라도 틀리면 소지금 0G
-  if(ok)st.gold+=1000; else st.gold=0; saveGame();
+function shellEnd(ok){   // 야바위 결과: 세 판 다 맞히면 +2000G → 최고 난이도 도전 여부 선택, 하나라도 틀리면 소지금 0G
+  if(ok)st.gold+=2000; else st.gold=0; saveGame();
   setMode('leo');
-  st.script={i:0,lines:ok?[['✦ 세 판 모두 맞혔다! (+1000G)',''],['부자가 됐다.','루카스']]:[['✦ 소지금이 0G가 됐다...',''],['분명 속임수가 있다.','루카스']],after:()=>setMode('idle')};say(...st.script.lines[0]);
+  st.script={i:0,lines:ok?[['✦ 세 판 모두 맞혔다! (+2000G)',''],['부자가 됐다.','루카스']]:[['✦ 소지금이 0G가 됐다...',''],['분명 속임수가 있다.','루카스']],
+    after:()=>{if(!ok){setMode('idle');return;}
+      st.choice={title:'최고 난이도에 도전할까?',opts:[['shtop','도전한다'],['shno','그만둔다']],pick:id=>{
+        if(id==='shtop'){hideDlg();setMode('mg5');MG5.start(shellTopEnd,true);} else setMode('idle');}};
+      st.menu='choice';st.cur=0;renderMenu();}};
+  say(...st.script.lines[0]);
+}
+function shellTopEnd(ok){   // 야바위 최고 난이도: 맞히면 +3000G, 틀리면 소지금 0G
+  if(ok)st.gold+=3000; else st.gold=0; saveGame();
+  setMode('leo');
+  st.script={i:0,lines:ok?[['✦ 최고 난이도도 맞혔다! (+3000G)',''],['부자가 됐다.','루카스']]:[['✦ 소지금이 0G가 됐다...',''],['분명 속임수가 있다.','루카스']],after:()=>setMode('idle')};say(...st.script.lines[0]);
 }
 function duelEnd(score){   // 기억 결투 결과
   if(score>=5)dqEvent('duel');
@@ -1408,6 +1419,7 @@ const SHELL={
   '3':{glow:'rgba(255,190,210,.95)'},
   '4':{glow:'rgba(255,200,215,.95)'},
   '5':{glow:'rgba(255,90,170,.6)'},
+  '6':{glow:'rgba(255,150,205,.55)'},
 };
 function lcg(seed){let s=seed;return()=>((s=(s*1103515245+12345)&0x7fffffff)/0x7fffffff);}
 function jaggedRect(c,x,y,w,h,step,amp,mode,seed){
@@ -1447,7 +1459,7 @@ function drawShell(c,theme,forCapture){
     c.save();rr(c,-14,46,24,96,10);c.fillStyle='#f7a9bc';c.fill();c.strokeStyle='#e07c96';c.lineWidth=3;c.stroke();
     c.strokeStyle='#e07c96';c.lineWidth=2;for(const yy of [70,78,86]){c.beginPath();c.moveTo(-8,yy);c.lineTo(4,yy);c.stroke();}c.restore();
   }
-  const body={'1':'#f9b8d8','2':'#ef3b45','3':'#f7a9bc','4':'#f7a8c0','5':'rgba(255,70,160,.5)'}[theme], bodyB={'1':'#e48fbb','2':'#b71e2b','3':'#e07c96','4':'#dd8aa3','5':'rgba(214,30,120,.75)'}[theme];
+  const body={'1':'#f9b8d8','2':'#ef3b45','3':'#f7a9bc','4':'#f7a8c0','5':'rgba(255,70,160,.5)','6':'rgba(24,24,34,.68)'}[theme], bodyB={'1':'#e48fbb','2':'#b71e2b','3':'#e07c96','4':'#dd8aa3','5':'rgba(214,30,120,.75)','6':'rgba(10,10,16,.9)'}[theme];
   c.save(); if(forCapture){c.shadowColor=glowC;c.shadowBlur=30;} eggPath(c,0,0,350,470); c.fillStyle=body; c.fill(); c.restore();
   c.save(); eggPath(c,0,0,350,470); c.clip();
   if(theme==='1'){
@@ -1473,13 +1485,25 @@ function drawShell(c,theme,forCapture){
     const r=lcg(5);
     for(let i=0;i<260;i++){const x=r()*350,y=r()*470,z=r();c.fillStyle=z<.5?'rgba(255,255,255,.75)':z<.8?'rgba(255,190,230,.85)':'rgba(255,240,180,.8)';c.fillRect(x,y,z<.9?1.6:2.6,z<.9?1.6:2.6);}
     c.fillStyle='rgba(255,255,255,.18)';c.beginPath();c.ellipse(96,150,34,110,-.25,0,7);c.fill();
+  }else if(theme==='6'){   // 밤하늘 펄: 은은한 성운 + 펄 점 + 반짝이 + LUKAS
+    for(const [gx,gy,gr,gc] of [[175,40,120,'rgba(200,200,215,.38)'],[80,380,110,'rgba(130,160,190,.22)'],[270,390,110,'rgba(190,140,190,.24)']]){
+      const g=c.createRadialGradient(gx,gy,0,gx,gy,gr);g.addColorStop(0,gc);g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(0,0,350,470);}
+    const r=lcg(6);
+    for(let i=0;i<240;i++){const x=r()*350,y=r()*470,z=r();c.fillStyle=z<.55?'rgba(255,255,255,.7)':z<.75?'rgba(255,190,225,.8)':z<.9?'rgba(255,240,170,.75)':'rgba(190,230,255,.75)';c.beginPath();c.arc(x,y,z<.9?.9:1.5,0,7);c.fill();}
+    const spark=(x,y,s,col)=>{c.fillStyle=col;c.beginPath();c.moveTo(x,y-s);c.quadraticCurveTo(x,y,x+s,y);c.quadraticCurveTo(x,y,x,y+s);c.quadraticCurveTo(x,y,x-s,y);c.quadraticCurveTo(x,y,x,y-s);c.fill();};
+    [[96,50,7],[112,46,5],[284,48,6],[302,52,5],[324,70,4],[96,82,4],[70,358,7],[60,404,6],[192,376,5],[246,380,6],[150,402,4],[288,442,6],[300,436,4],[30,420,3]].forEach(([x,y,s])=>spark(x,y,s,'rgba(255,255,255,.95)'));
+    spark(296,52,5,'#ffe9a3');
+    c.strokeStyle='rgba(205,205,215,.75)';c.lineWidth=3;eggPath(c,14,14,322,442);c.stroke();   // 안쪽 은색 테두리
+    c.save();c.fillStyle='#ff9ac8';c.font='30px "Comic Sans MS","Segoe Print","Chalkboard SE",cursive,sans-serif';c.textAlign='center';c.fillText('LUKAS',175,68);c.restore();
+    for(const [hx,hy] of [[106,78],[244,78]]){c.save();c.translate(hx,hy);c.scale(.42,.42);c.fillStyle='#ff9ac8';c.beginPath();c.moveTo(0,8);c.bezierCurveTo(-14,-1,-10,-13,0,-6);c.bezierCurveTo(10,-13,14,-1,0,8);c.fill();c.restore();}
   }else{
     // visor
     c.fillStyle='#5a1824';c.beginPath();c.moveTo(0,0);c.lineTo(350,0);c.lineTo(350,30);c.quadraticCurveTo(175,52,0,30);c.closePath();c.fill();
     c.strokeStyle='#8a3442';c.lineWidth=3;c.beginPath();c.moveTo(60,22);c.quadraticCurveTo(175,40,290,22);c.stroke();
     [[70,90],[176,84],[282,90],[6,204],[344,196],[8,302],[342,312],[42,382],[310,380],[176,370],[128,462],[224,466]].map(p=>[p[0],p[1],1.6]).forEach(([x,y,s])=>cherry(c,x,y,s));
   }
-  haze(c);
+  if(theme!=='6') haze(c);
+  else{c.fillStyle='rgba(255,255,255,.035)';for(let y=0;y<470;y+=3)c.fillRect(0,y,350,1);}
   // bezel
   if(theme==='1'){
     c.save();c.shadowColor='rgba(255,255,255,.8)';c.shadowBlur=10;rr(c,38.5,101.5,273,241,24);c.fillStyle='#9eebd2';c.fill();c.restore();
@@ -1494,6 +1518,10 @@ function drawShell(c,theme,forCapture){
   }else if(theme==='5'){
     rr(c,38.5,101.5,273,241,22);c.fillStyle='rgba(246,236,255,.95)';c.fill();c.strokeStyle='#d8c6f0';c.lineWidth=3;c.stroke();
     rr(c,43,106,264,232,8);c.fillStyle='#a77bc9';c.fill();
+  }else if(theme==='6'){
+    rr(c,38.5,101.5,273,241,22);c.fillStyle='#5a5b70';c.fill();c.strokeStyle='#33343f';c.lineWidth=3;c.stroke();
+    c.strokeStyle='rgba(220,220,230,.8)';c.lineWidth=2;c.beginPath();c.moveTo(46,103);c.lineTo(304,103);c.stroke();
+    rr(c,43,106,264,232,8);c.fillStyle='#16161d';c.fill();
   }else{
     rr(c,38.5,101.5,273,241,22);c.fillStyle='#fde0e7';c.fill();c.strokeStyle='#eeaabd';c.lineWidth=3;c.stroke();
     rr(c,43,106,264,232,8);c.fillStyle='#d98aa0';c.fill();
@@ -1505,9 +1533,12 @@ function drawShell(c,theme,forCapture){
   else if(theme==='2') btnsDraw(c,'#ff9fd0','#e35f9e',false);
   else if(theme==='3') btnsDraw(c,'#ffe9a3','#e0bf5e',false);
   else if(theme==='4') btnsDraw(c,'#a8673e','#7a4526',false);
+  else if(theme==='6') [[93,396],[175,408],[257,396]].forEach(([bx,by])=>{   // 핑크 고양이 머리 (위치·크기는 다른 버튼과 같음)
+    c.fillStyle='#ff9ac8';c.beginPath();c.ellipse(bx,by+2,16,14,0,0,7);c.fill();
+    for(const s of [-1,1]){c.beginPath();c.moveTo(bx+s*15,by-2);c.lineTo(bx+s*13,by-16);c.lineTo(bx+s*4,by-10);c.closePath();c.fill();}})
   else btnsDraw(c,'#ffe3f0','#f3a6c8',false);
   // dial (all themes)
-  const DIAL={'1':['#9eebd2','#52b896','#f7a9cf'],'2':['#74d07e','#4fae62','#ff9fd0'],'3':['#ffe9a3','#e0bf5e','#e8303f'],'4':['#fde9a6','#e8c766','#a8673e'],'5':['rgba(246,236,255,.95)','#d8c6f0','#ff9fcf']}[theme];
+  const DIAL={'1':['#9eebd2','#52b896','#f7a9cf'],'2':['#74d07e','#4fae62','#ff9fd0'],'3':['#ffe9a3','#e0bf5e','#e8303f'],'4':['#fde9a6','#e8c766','#a8673e'],'5':['rgba(246,236,255,.95)','#d8c6f0','#ff9fcf'],'6':['#1d1d26','#ff9ac8','#ff6fae']}[theme];
   c.beginPath();c.arc(336,100,20.5,0,7);c.fillStyle=DIAL[0];c.fill();c.strokeStyle=DIAL[1];c.lineWidth=3;c.stroke();
   c.beginPath();c.arc(336,100,8.5,0,7);c.fillStyle=DIAL[2];c.fill();c.stroke();
 }
