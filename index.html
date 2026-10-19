@@ -250,6 +250,7 @@ const PLACES={bed:'내 방',living:'거실',library:'도서관',park:'공원',ki
   garden:'전정',hall:'그레이트 홀',nikolaus:'니콜라우스 방',prince:'왕세자 방',street:'프로이센 거리',academy:'복도',adorm:'기숙사',aliving:'거실',adrroom:'아드리안 방',bstreet:'바덴 거리',bprince:'대공자 방',lhouse:'동료의 집'};
 // 지역: 우리 동네 / 바이에른 궁 (이동하기는 같은 지역 안에서만, 다른 지역은 지도로)
 const REGION_OF={bed:'home',living:'home',library:'home',park:'home',kitchen:'home',brother:'home',dorm:'home',garden:'bavaria',hall:'bavaria',nikolaus:'bavaria',prince:'bavaria',street:'prussia',academy:'prussia',adorm:'prussia',aliving:'anhalt',adrroom:'anhalt',bstreet:'baden',bprince:'baden',lhouse:'home'};
+const HOME_IN=['bed','living','kitchen'];   // 우리집 안(내 방·거실·주방). 밖에서는 '우리집 가기' → 고르기
 const ACAD_IN=['academy','adorm'];   // 아카데미 안(복도·기숙사). 밖에서는 '아카데미 가기' → 복도/기숙사 고르기
 const HIDDEN_PLACES=['brother','dorm'];
 const FAME_MAX=10, FAME_DECAY=24*60*60*1000;   // 명성: 니콜라우스 방 해금 뒤 플레로마 소탕마다 +1, 실제 24시간마다 -1
@@ -1258,7 +1259,7 @@ function menuItems(){
   if(st.menu==='choice') return st.choice?st.choice.opts.map(([id,label])=>({id,label})):[{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
   if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='dish'||st.wear.gloves)&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
-  if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()&&!((k==='academy'||k==='adorm')&&!ACAD_IN.includes(st.room))).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||((k==='academy'||k==='adorm')&&st.niko)?'🔒':''})),...(ACAD_IN.includes(st.room)?[]:[{id:'acad',label:'아카데미 가기',tag:st.niko?'🔒':''}]),{id:'map',label:'다른 지역'}];
+  if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()&&!((k==='academy'||k==='adorm')&&!ACAD_IN.includes(st.room))&&!(HOME_IN.includes(k)&&regionNow()==='home'&&!HOME_IN.includes(st.room))).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||((k==='academy'||k==='adorm')&&st.niko)?'🔒':''})),...(ACAD_IN.includes(st.room)?[]:[{id:'acad',label:'아카데미 가기',tag:st.niko?'🔒':''}]),...(regionNow()==='home'&&!HOME_IN.includes(st.room)?[{id:'homego',label:'우리집 가기'}]:[]),{id:'map',label:'다른 지역'}];
   if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'}];
   if(st.menu==='rel') return [{id:'relback',label:'돌아가기'}];
   if(st.menu==='inv') return [...Array(INV_MAX)].map((_,i)=>({id:'slot',i}));
@@ -1377,6 +1378,9 @@ function doAction(m){
   if(m.id==='go'&&isLocked(m.to)){beep(220,.15);toast('아직 들어갈 수 없어.');return;}
   if(m.id==='go'&&nikoBare()&&!NIKO_BARE.includes(m.to)){beep(220,.15);toast('마스크를 써야 갈 수 있어.');return;}
   if(m.id==='map'){closeMenu();beep(990,.06);st.map={cur:Math.max(0,MAP_NODES.findIndex(n=>n.id===regionNow())),t0:performance.now()};return;}
+  if(m.id==='homego'){
+    st.choice={cancel:true,title:'우리집',opts:[['bed','내 방'],['living','거실'],['kitchen','주방']],pick:to=>{st.cookStreak=0;setMode('idle');st.leo=null;if(st.withLeo){st.withLeo=false;saveGame();}st.trans=.01;st.transTo=to;}};
+    st.menu='choice';st.cur=0;renderMenu();beep(990,.05);return;}
   if(m.id==='acad'){
     if(st.niko){beep(220,.15);toast('니콜라우스로는 아카데미에 갈 수 없어.');return;}
     st.choice={cancel:true,title:'아카데미',opts:[['academy','복도'],['adorm','기숙사']],pick:to=>{st.cookStreak=0;setMode('idle');st.leo=null;if(st.withLeo){st.withLeo=false;saveGame();}st.trans=.01;st.transTo=to;}};
