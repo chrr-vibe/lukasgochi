@@ -1494,7 +1494,13 @@ function drawShell(c,theme,forCapture){
     [[96,50,7],[112,46,5],[284,48,6],[302,52,5],[324,70,4],[96,82,4],[70,358,7],[60,404,6],[192,376,5],[246,380,6],[150,402,4],[288,442,6],[300,436,4],[30,420,3]].forEach(([x,y,s])=>spark(x,y,s,'rgba(255,255,255,.95)'));
     spark(296,52,5,'#ffe9a3');
     c.strokeStyle='rgba(205,205,215,.75)';c.lineWidth=3;eggPath(c,14,14,322,442);c.stroke();   // 안쪽 은색 테두리
-    c.save();c.fillStyle='#ff9ac8';c.font='30px "Comic Sans MS","Segoe Print","Chalkboard SE",cursive,sans-serif';c.textAlign='center';c.fillText('LUKAS',175,68);c.restore();
+    // LUKAS: 폰트 대신 직접 그린 동글동글 손글씨 (기기·오프라인 상관없이 같게)
+    const HAND=[[18,'M2 0Q0 14 3 24Q10 25 17 22'],[18,'M1 0Q-1 24 9 24Q19 24 17 0'],[17,'M2 0Q1 12 2 24M15 1Q8 9 3 13Q10 16 16 24'],[18,'M1 24Q5 10 9 0Q13 10 17 24M4 15Q9 13 14 15'],[16,'M15 3Q9 -2 3 3Q0 8 8 11Q17 14 14 20Q9 26 1 21']];
+    const tilt=[-.07,.05,-.04,.07,-.06], bob=[0,-2,1,-2,0];
+    c.save();c.strokeStyle='#ff9ac8';c.lineWidth=4.2;c.lineCap='round';c.lineJoin='round';
+    let hx0=175-(HAND.reduce((a,[w])=>a+w,0)+7*(HAND.length-1))/2;
+    HAND.forEach(([w,d],i)=>{c.save();c.translate(hx0+w/2,56+bob[i]);c.rotate(tilt[i]);c.translate(-w/2,-12);c.stroke(new Path2D(d));c.restore();hx0+=w+7;});
+    c.restore();
     for(const [hx,hy] of [[106,78],[244,78]]){c.save();c.translate(hx,hy);c.scale(.42,.42);c.fillStyle='#ff9ac8';c.beginPath();c.moveTo(0,8);c.bezierCurveTo(-14,-1,-10,-13,0,-6);c.bezierCurveTo(10,-13,14,-1,0,8);c.fill();c.restore();}
   }else{
     // visor
@@ -1698,6 +1704,7 @@ document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
 // 업데이트 내역: *알림주기 할 때마다 맨 위에 추가 (가장 최근 것이 접속 시 알림으로 한 번 뜸)
 const UPDATE_LOG=[
+  {id:'n15',t:'26.10.20 06:36',text:'야바위 추가'},
   {id:'n14',t:'26.10.19 21:20',text:'아드리안 아바타 변경\n일일 퀘스트 추가\n상점 아이템 추가'},
   {id:'n13',t:'26.10.19 11:00',text:'상점가 추가'},
   {id:'n12',t:'26.10.19 10:30',text:'기숙사 추가'},
