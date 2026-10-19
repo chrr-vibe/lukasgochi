@@ -1239,7 +1239,7 @@ function menuItems(){
   if(st.menu==='choice') return st.choice?st.choice.opts.map(([id,label])=>({id,label})):[{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
   if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
-  if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()).map(k=>({id:'go',to:k,tag:k==='lhouse'&&!st.loverOk?'🔒':''})),{id:'map',label:'다른 지역'}];
+  if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||(k==='academy'&&st.niko)?'🔒':''})),{id:'map',label:'다른 지역'}];
   if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'shop',label:'상점 가기'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'}];
   if(st.menu==='rel') return [{id:'relback',label:'돌아가기'}];
   if(st.menu==='inv') return [...Array(INV_MAX)].map((_,i)=>({id:'slot',i}));
@@ -1359,6 +1359,7 @@ function doAction(m){
   if(m.id==='go'&&nikoBare()&&!NIKO_BARE.includes(m.to)){beep(220,.15);toast('마스크를 써야 갈 수 있어.');return;}
   if(m.id==='map'){closeMenu();beep(990,.06);st.map={cur:Math.max(0,MAP_NODES.findIndex(n=>n.id===regionNow())),t0:performance.now()};return;}
   if(m.id==='go'&&m.to==='lhouse'&&!st.loverOk){closeMenu();beep(990,.05);pwOpen();return;}   // 동료의 집: 처음 한 번만 비밀번호
+  if(m.id==='go'&&m.to==='academy'&&st.niko){beep(220,.15);toast('니콜라우스로는 아카데미에 갈 수 없어.');return;}
   if(m.id==='go'){st.cookStreak=0;closeMenu();beep(1320,.08);setMode('idle');st.leo=null;if(st.withLeo){st.withLeo=false;saveGame();}st.trans=.01;st.transTo=m.to;return;}
   // ---- actions ----
   if(m.id==='sleep'&&inRoom(m)&&st.niko&&st.mode!=='sleep'){beep(220,.15);toast('변장 중엔 잘 수 없어.');return;}
@@ -2108,7 +2109,6 @@ document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
 // 업데이트 내역: *알림주기 할 때마다 맨 위에 추가 (가장 최근 것이 접속 시 알림으로 한 번 뜸)
 const UPDATE_LOG=[
-  {id:'n10',t:'26.10.18 22:58',text:'아카데미 추가'},
   {id:'n10',t:'26.10.18 22:58',text:'아카데미 추가'},
   {id:'n9',t:'26.10.18 21:05',text:'니콜라우스의 활약 추가'},
   {id:'n8',t:'26.10.18 16:57',text:'바덴 지역 추가'},
