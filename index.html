@@ -221,6 +221,10 @@ html,body{height:auto;min-height:100%}
     <div class="mrow"><button class="addbg" id="juliaOk">확인</button></div></div></div>
   <div class="modal" id="mailModal"><div class="mbox"><div class="mt" id="mailTitle">✉</div><div id="mailBody"></div>
     <div class="mrow"><button class="addbg" id="mailOk">확인</button><button class="addbg ghost" id="mailCancel">닫기</button></div></div></div>
+  <div class="modal" id="admModal"><div class="mbox"><div class="mt">관리자 코드</div><div class="bkhint">코드를 입력해줘.</div>
+    <input id="admIn" class="minput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" style="text-align:center;letter-spacing:8px">
+    <div class="mcount" id="admMsg" style="text-align:center"></div>
+    <div class="mrow"><button class="addbg" id="admOk">확인</button><button class="addbg ghost" id="admNo">닫기</button></div></div></div>
   <div class="modal" id="pwModal"><div class="mbox"><div class="mt">🔒 동료의 집</div><div class="bkhint">비밀번호를 눌러줘.</div>
     <input id="pwIn" class="minput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" style="text-align:center;letter-spacing:8px">
     <div class="mcount" id="pwMsg" style="text-align:center"></div>
@@ -939,7 +943,7 @@ function statusHTML(it){   // it(i): 선택 항목 (0 루카스 아스카니엔 
     row('건강',he/TEST.sickAfter,'#7fd6a0', st.poison?(sleeping?'독 때문에 회복 안 됨':'☠ 독약 x'+st.poison+'! (레오나르드를 만나요)'):st.sick?'아픔! (재워 주세요)':sleeping?'자는 중 · 회복 중':'남은 시간 '+fmt(he))+
     row('멘탈',me/TEST.cryAfter,'#ff8fbf', st.cry?'울고 있어… (쓰다듬기)':sleeping?'자는 중':'남은 시간 '+fmt(me))+
     ((st.plClear|0)>=PL_UNLOCK?row('명성',(st.fame|0)/FAME_MAX,'#6fa8dc','니콜라우스'):'')+it(1)+it(2)+
-    `<div class="srow gold"><span class="sn">소지액</span><span class="gv">${st.gold} G</span></div>`+it(3)+it(4);
+    `<div class="srow gold"><span class="sn">소지액</span><span class="gv">${st.gold} G</span></div>`+it(3)+it(4)+`<div style="border-top:1px solid currentColor;opacity:.55;margin:5px 0 3px"></div>`+it(5);
 }
 function relHTML(){   // 관계도: 지금은 레오나르드, 아드리안 방에 다녀오면 아드리안도
   const row=(name,ratio,col,text)=>`<div class="srow"><span class="sn">${name}</span>${bar(ratio,col)}</div><div class="st">${text}</div>`;
@@ -952,7 +956,7 @@ function menuItems(){
   if(st.menu==='root') return ROOT;
   if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='dish'||st.wear.gloves)&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
   if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()&&!((k==='academy'||k==='adorm')&&!ACAD_IN.includes(st.room))&&!(HOME_IN.includes(k)&&regionNow()==='home'&&!HOME_IN.includes(st.room))).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||((k==='academy'||k==='adorm')&&st.niko)?'🔒':''})),...(ACAD_IN.includes(st.room)||regionNow()!=='prussia'?[]:[{id:'acad',label:'아카데미 가기',tag:st.niko?'🔒':''}]),...(regionNow()==='home'&&!HOME_IN.includes(st.room)?[{id:'homego',label:'우리집 가기'}]:[]),{id:'map',label:'다른 지역'}];
-  if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'quest',label:'퀘스트'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'}];
+  if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'quest',label:'퀘스트'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'},{id:'admin',label:'관리자 코드'}];
   if(st.menu==='rel') return [{id:'relback',label:'돌아가기'}];
   if(st.menu==='quest') return [{id:'dq',label:'일일 퀘스트'},{id:'qback',label:'돌아가기'}];
   if(st.menu==='dquest'){const q=dqActive();return [...(q?[{id:'qitem',label:q.name,tag:dqProg()}]:[{id:'none',label:st.dq&&st.dq.done?'오늘 퀘스트를 완료했어':'받은 퀘스트가 없어'}]),{id:'dqback',label:'돌아가기'}];}
@@ -1047,7 +1051,7 @@ function doAction(m){
   if(st.menu==='rel'){st.menu='status';st.cur=1;renderMenu();beep(520,.06);return;}
   if(st.menu==='quest'){ if(m.id==='dq'){st.menu='dquest';st.cur=0;renderMenu();beep(990,.05);return;} st.menu='status';st.cur=2;renderMenu();beep(520,.06);return; }
   if(st.menu==='dquest'){ if(m.id==='dqback'){st.menu='quest';st.cur=0;renderMenu();beep(520,.06);return;} beep(660,.04);return; }   // 퀘스트 항목은 보기만 (수락/파기 없음)
-  if(st.menu==='status'){ if(m.id==='me'){beep(660,.04);return;} return openSub(m.id); }
+  if(st.menu==='status'){ if(m.id==='me'){beep(660,.04);return;} if(m.id==='admin'){closeMenu();beep(990,.05);admOpen();return;} return openSub(m.id); }
   if(st.menu==='inv'){ if(!(st.inv||[])[m.i]){beep(330,.05);return;} st.invSel=m.i; return openSub('item'); }
   if(st.menu==='item'){ return useItem(m.id); }
   if(st.menu==='mail'){
@@ -1209,20 +1213,20 @@ const ACADEMY_JULIA=[
   [['여기서 만나네. 바덴의 아카데미가 더 아름다운데.','율리아'],['비교하러 온 거야?','루카스'],['너를 데려가려고 온 거지.','율리아']],
   [['아직도 레오나르드 곁에 있어?','율리아'],['…그게 무슨 상관인데.','루카스'],['상관있지. 나는 기다리는 걸 잘 못하거든.','율리아']],
   [['이 복도 끝까지 같이 걸을래?','율리아'],['끝에 뭐가 있는데.','루카스'],['바덴으로 가는 마차.','율리아']]];
-function shellEnd(ok){   // 야바위 결과: 세 판 다 맞히면 +2000G → 최고 난이도 도전 여부 선택, 하나라도 틀리면 소지금 0G
-  if(ok)st.gold+=2000; else st.gold=0; saveGame();
+function shellEnd(ok){   // 야바위 결과: 세 판 다 맞히면 +2000G → 최고 난이도 도전 여부 선택, 하나라도 틀리면 -2000G
+  if(ok)st.gold+=2000; else st.gold=Math.max(0,st.gold-2000); saveGame();
   setMode('leo');
-  st.script={i:0,lines:ok?[['✦ 세 판 모두 맞혔다! (+2000G)',''],['부자가 됐다.','루카스']]:[['✦ 소지금이 0G가 됐다...',''],['분명 속임수가 있다.','루카스']],
+  st.script={i:0,lines:ok?[['✦ 세 판 모두 맞혔다! (+2000G)',''],['부자가 됐다.','루카스']]:[['✦ 2000G를 잃었다...',''],['분명 속임수가 있다.','루카스']],
     after:()=>{if(!ok){setMode('idle');return;}
       st.choice={title:'최고 난이도에 도전할까?',opts:[['shtop','도전한다'],['shno','그만둔다']],pick:id=>{
         if(id==='shtop'){hideDlg();setMode('mg5');MG5.start(shellTopEnd,true);} else setMode('idle');}};
       st.menu='choice';st.cur=0;renderMenu();}};
   say(...st.script.lines[0]);
 }
-function shellTopEnd(ok){   // 야바위 최고 난이도: 맞히면 +3000G, 틀리면 소지금 0G
-  if(ok)st.gold+=3000; else st.gold=0; saveGame();
+function shellTopEnd(ok){   // 야바위 최고 난이도: 맞히면 +3000G, 틀리면 -2000G
+  if(ok)st.gold+=3000; else st.gold=Math.max(0,st.gold-2000); saveGame();
   setMode('leo');
-  st.script={i:0,lines:ok?[['✦ 최고 난이도도 맞혔다! (+3000G)',''],['부자가 됐다.','루카스']]:[['✦ 소지금이 0G가 됐다...',''],['분명 속임수가 있다.','루카스']],after:()=>setMode('idle')};say(...st.script.lines[0]);
+  st.script={i:0,lines:ok?[['✦ 최고 난이도도 맞혔다! (+3000G)',''],['부자가 됐다.','루카스']]:[['✦ 2000G를 잃었다...',''],['분명 속임수가 있다.','루카스']],after:()=>setMode('idle')};say(...st.script.lines[0]);
 }
 function duelEnd(score){   // 기억 결투 결과
   if(score>=5)dqEvent('duel');
@@ -1878,6 +1882,16 @@ function pwTry(){
 document.getElementById('pwOk').onclick=pwTry;
 pwIn.addEventListener('keydown',e=>{if(e.key==='Enter')pwTry();});
 document.getElementById('pwNo').onclick=()=>{pwModal.classList.remove('show');try{pwIn.blur();}catch(e){}};
+const admModal=document.getElementById('admModal'), admIn=document.getElementById('admIn'), admMsg=document.getElementById('admMsg');
+function admOpen(){admIn.value='';admMsg.textContent='';admModal.classList.add('show');setTimeout(()=>{try{admIn.focus();}catch(e){}},50);}
+function admTry(){   // 관리자 코드 (테스트용): 맞으면 5000G
+  if(admIn.value.trim()!=='0619'){beep(220,.15);admMsg.textContent='코드가 틀렸어.';admIn.value='';return;}
+  admModal.classList.remove('show');try{admIn.blur();}catch(e){}
+  st.gold+=5000;saveGame();beep(1320,.08);setTimeout(()=>beep(1760,.1),90);toast('✦ 5000G를 받았다!',1800);
+}
+document.getElementById('admOk').onclick=admTry;
+admIn.addEventListener('keydown',e=>{if(e.key==='Enter')admTry();});
+document.getElementById('admNo').onclick=()=>{admModal.classList.remove('show');try{admIn.blur();}catch(e){}};
 function loverMailTick(){   // 현실 6시간마다 애인 편지 (로컬 · 오프라인도 OK) — 안 읽은 게 많이 쌓이면 잠깐 멈춤
   if(!st.loverOk) return;
   const now=Date.now();
