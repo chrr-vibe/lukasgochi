@@ -207,6 +207,9 @@ html,body{height:auto;min-height:100%}
   <div class="modal" id="unlockModal"><div class="mbox"><div class="mt">✦ 해금!</div>
     <div class="bkhint" id="unlockTxt" style="text-align:center;font-size:14px"></div>
     <div class="mcol"><button class="addbg" id="unlockOk" disabled>확인</button></div></div></div>
+  <div class="modal" id="mecModal"><div class="mbox"><div class="mt">✦ 이벤트가 발생했습니다.</div>
+    <div class="bkhint" style="text-align:center;font-size:14px">메클렌부르크 해금</div>
+    <div class="mcol"><button class="addbg" id="mecOkBtn" disabled>확인</button></div></div></div>
   <div class="modal" id="warnModal"><div class="mbox"><div class="mt">☠ 독이 세 겹 쌓였어!</div>
     <div class="bkhint">한 번만 더 독을 먹으면 게임을 계속할 수 없어.<br>지금 <b>게임을 저장(백업)</b>해 둬!<br>레오나르드를 만날 때마다 독이 한 겹씩 풀려.</div>
     <div class="mcol"><button class="addbg" id="warnSave">백업 파일 저장하기</button><button class="addbg ghost" id="warnClose">닫기</button></div></div></div>
@@ -250,6 +253,7 @@ const PIV=76, BX0=70, BX1=124;
 const imgs={}; let loaded=0,total=0;
 function load(k,src){total++;const im=new Image();im.onload=()=>loaded++;im.src=src;imgs[k]=im;}
 load('bang',SPR.bang); load('tail',SPR.tail); load('leo',SPR.leo); load('glasses',SPR.glasses); load('drunk',SPR.drunk); load('eli',SPR.eli); load('monocle',SPR.monocle); load('heart',SPR.heart); load('leoHome',SPR.leoHome); load('leoGlasses',SPR.leoGlasses); load('niko',SPR.niko); load('julia',SPR.julia); load('leoAcad',SPR.leoAcad); load('juliaAcad',SPR.juliaAcad); load('juliaLockL',SPR.juliaLockL); load('juliaLockR',SPR.juliaLockR); load('nikoBang',SPR.nikoBang); load('nikoMask',SPR.nikoMask); load('leoBook',SPR.leoBook); load('adr',SPR.adr); load('broHead',SPR.broHead); for(const k of ['heart','broHead','leoHome','adr']) load(k+'Bang',SPR[k+'Bang']); load('jerome',SPR.jerome); load('jeromeBang',SPR.jeromeBang); load('onesie',SPR.onesie); load('mask',SPR.mask); load('gloves',SPR.gloves); if(SPR.eras){load('eras',SPR.eras); if(SPR.erasBang) load('erasBang',SPR.erasBang);}
+for(const k of ['meck','meckLockL','meckLockR']) if(SPR[k]) load(k,SPR[k]);   // 메클렌부르크 (옆머리 갈기 흔들림)
 if(SPR.blush) load('blush',SPR.blush);   // 취권 블러셔
 if(SPR.readNews) load('readNews',SPR.readNews);   // 루카스 신문 읽기: 신문만 (옷 위에 얹음)
 for(const k of ['lover','loverLockL','loverLockR','loverSleep','loverSleepLockL','loverSleepLockR']) if(SPR[k]) load(k,SPR[k]);   // 동료의 집: 애인 (깨어 있을 때 / 같이 잘 때)
@@ -271,7 +275,7 @@ const NIKO_BARE=['nikolaus','prince'];     // 변장했는데 마스크 안 쓰�
 const nikoBare=()=>st.niko&&!st.wear.mask;
 const MAP_NODES=[{id:'home',name:'우리 동네',x:22,y:46,entry:'bed'},{id:'bavaria',name:'바이에른 궁',x:72,y:22,entry:'garden'},
   {id:'prussia',name:'프로이센',x:122,y:46,entry:'street'},{id:'anhalt',name:'안할트',x:172,y:22,entry:'aliving',lock:()=>(st.adrMeet|0)<ANHALT_MEET,showName:true},{id:'baden',name:'바덴',x:222,y:46,entry:'bstreet',lock:()=>!st.badenOk,showName:true},   // 잠겨 있어도 이름은 보임
-  {id:'meck',name:'메클렌부르크',x:272,y:22,lock:()=>!st.meckOk},{id:null,name:'???',x:322,y:46},{id:null,name:'???',x:372,y:22}];   // 정사각형 칸 지그재그 (이름은 칸 아래)
+  {id:null,name:'???',x:272,y:22},{id:null,name:'???',x:322,y:46},{id:null,name:'???',x:372,y:22}];   // 정사각형 칸 지그재그 (이름은 칸 아래)
 const MAP_W=410;
 function regionNow(){return REGION_OF[st.room]||'home';}
 function withRo(w){const c=w.charCodeAt(w.length-1)-0xAC00;if(c<0||c>11171)return w+'로';const j=c%28;return w+(j===0||j===8?'로':'으로');}   // brother: 이동 메뉴엔 안 나옴
@@ -343,8 +347,8 @@ const LEO=[
 // 엘리아스: 50% 술 취하기 / 50% 건들건들 장난치며 등장
 const ELI_DRUNK=[['어이~ 루카스! 한 잔 받아라~','엘리아스'],['…한 잔만이다.','루카스'],['✦ 엘리아스가 돈을 주고 갔다. (+500G)','',()=>{getDrunk();st.gold+=500;saveGame();}],['알딸딸하다...','루카스']];
 const ELI_BUDDY=[
-  [['어이~ 도련님! 여기서 혼자 뭐 하냐?','엘리아스'],['…또 너냐. 시끄럽게 굴지 마.','루카스'],['에이~ 반가우면서. 가진 거 다 내놔 봐. 농담이야 ㅋ','엘리아스']],
-  [['야, 루카스! 오늘 표정 왜 그래~ 누가 괴롭혔냐?','엘리아스'],['…지금 네가 괴롭히고 있잖아.','루카스'],['크크, 들켰네. 그래도 나 보니까 좋지?','엘리아스']],
+  [['어이~ 도련님! 여기서 혼자 뭐 하냐?','엘리아스'],['산책.','루카스'],['에이~ 반가우면서. 가진 거 다 내놔 봐. 농담이야 ㅎ','엘리아스']],
+  [['루카! 오늘 표정 왜 그래~ 누가 괴롭혔냐?','엘리아스'],['…지금 네가 괴롭히고 있잖아.','루카스'],['들켰네. 그래도 나 보니까 좋지?','엘리아스']],
   [['이야~ 공원에서 우아하게 산책이냐? 귀족 나셨네~','엘리아스'],['그 말투 좀 어떻게 안 되냐.','루카스'],['안 되지~ 이게 내 매력인데. 어깨 펴, 친구!','엘리아스']],
 ];
 const LEO_DRUNK=['사랑하는 자여, 네 영혼이 잘됨 같이...','레오나르드가 나를 한심하게 봤다.'];
@@ -512,7 +516,6 @@ function drawMap(t){   // 지역 지도 (초원 위 구불구불한 길 + 메모
 function mapMove(d){const M=st.map;M.cur=Math.max(0,Math.min(MAP_NODES.length-1,M.cur+d));beep(880,.04);}
 function mapSelect(){const n=MAP_NODES[st.map.cur];
   if(!n.id||(n.lock&&n.lock())){beep(220,.15);toast('아직 갈 수 없는 지역이야.');return;}
-  if(!n.entry){beep(220,.15);toast('아직 준비 중인 지역이야.');return;}
   if(st.poison&&n.id!=='home'){beep(220,.15);toast('독 때문에 우리 동네 밖으론 갈 수 없어.');return;}   // 독약 상태: 우리 동네만
   if(st.niko&&!NIKO_REGIONS.includes(n.id)){beep(220,.15);toast('변장 중엔 프로이센과 바이에른만 갈 수 있어.');return;}
   if(nikoBare()&&n.id!=='bavaria'){beep(220,.15);toast('마스크를 써야 갈 수 있어.');return;}
@@ -588,6 +591,12 @@ function figureBase(who,t){
     oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(imgs[who],0,0);
     oc2x.setTransform(1,0,k,1,-k*Y0,0);oc2x.drawImage(imgs.juliaLockL,0,0);
     oc2x.setTransform(1,0,k*.8,1,-k*.8*Y0,0);oc2x.drawImage(imgs.juliaLockR,0,0);
+    oc2x.setTransform(1,0,0,1,0,0);return oc2;}
+  if(who==='meck'){   // 메클렌부르크: 양옆 머리 갈기를 위쪽 고정으로 흔들기
+    const k=.05*Math.sin(t/1000*2*Math.PI/2.4)+.012*Math.sin(t/1000*4.7), Y0=48;
+    oc2x.setTransform(1,0,0,1,0,0);oc2x.clearRect(0,0,192,192);oc2x.drawImage(imgs.meck,0,0);
+    oc2x.setTransform(1,0,k,1,-k*Y0,0);oc2x.drawImage(imgs.meckLockL,0,0);
+    oc2x.setTransform(1,0,k*.8,1,-k*.8*Y0,0);oc2x.drawImage(imgs.meckLockR,0,0);
     oc2x.setTransform(1,0,0,1,0,0);return oc2;}
   if(who==='lover'||who==='loverSleep'){   // 애인: 율리아처럼 옆머리(+포니테일)를 위쪽 고정으로 살랑살랑, 같이 잘 땐 루카스 잘 때처럼 느리게
     const sl=who==='loverSleep', k=sl?.02*Math.sin(t/1000*2*Math.PI/3.4)+.005*Math.sin(t/1000*5.1):.032*Math.sin(t/1000*2*Math.PI/2.6)+.008*Math.sin(t/1000*4.3), Y0=80;   // 깨어 있을 때·잘 때 모두 율리아와 같은 크기 원본
@@ -1039,7 +1048,7 @@ let typer=null,toastTO=null;
 function say(text,name='루카스'){
   clearInterval(typer);clearTimeout(toastTO);toastTO=null;
   dlgEl.style.display='block';nmEl.style.display=name?'block':'none';nmEl.textContent=name;
-  nmEl.style.background=(name==='레오나르드'||name==='에라스미오스')?'#ffe27a':name==='제롬'?'#efdcbc':name==='불량배'?'#c9c4d6':name==='엘리아스'?'#bfe3ff':name==='아드리안'?'#ffd58a':name==='율리아'?'#ffb39a':name==='애인'?'#ff9a8a':'#7fe0c3';
+  nmEl.style.background=(name==='레오나르드'||name==='에라스미오스')?'#ffe27a':name==='제롬'?'#efdcbc':name==='불량배'?'#c9c4d6':name==='엘리아스'?'#bfe3ff':name==='아드리안'?'#ffd58a':name==='율리아'?'#ffb39a':name==='애인'?'#ff9a8a':name==='메클렌부르크'?'#d9c2a0':'#7fe0c3';
   dtext.textContent='';let i=0;st.dlg={done:false};
   typer=setInterval(()=>{dtext.textContent=text.slice(0,++i);if(i%2)beep((name==='레오나르드'||name==='에라스미오스')?900:name==='엘리아스'?760:name==='아드리안'?640:1200,.02,'square',.02);
     if(i>=text.length){clearInterval(typer);st.dlg.done=true;st.dlg.doneT=performance.now();}},55);
@@ -1181,8 +1190,11 @@ function doAction(m){
   if(m.id==='lsleep'){if(st.mode==='sleep'){setMode('idle');toast('잘 잤다.',1200);}else setMode('sleep');return;}
   if(m.id==='disguise'){st.niko=!st.niko;saveGame();setMode('pet');beep(st.niko?1760:660,.08);toast(st.niko?'✦ 니콜라우스로 변장했다.':'✦ 변장을 풀었다.',1600);return;}
   if(m.id==='await'){   // 아카데미 기다리기: 엘리아스 30% · 율리아 30% · 레오나르드 30% (→ 기억 결투)
-    const x=Math.random();st.leo=null;
-    if(!st.meckOk&&(st.adrRel|0)>=REL_MAX){st.meckWait=(st.meckWait|0)+1;if(st.meckWait>=10){st.meckOk=true;setTimeout(()=>unlockNotice('메클렌부르크 해금! (지도)'),600);}saveGame();}   // 아드리안 관계 MAX로 복도에서 10번 기다리면 해금
+    st.leo=null;
+    if(!st.mecOk&&(st.adrRel|0)>=REL_MAX){st.mecWait=(st.mecWait|0)+1;saveGame();   // 아드리안 호감도 MAX로 기다린 횟수 (업데이트 전 MAX 상태도 인정)
+      if(st.mecWait>=MEC_NEED){mecEvent();return;}}
+    if(st.mecOk&&Math.random()<MEC_CHANCE){setMode('leo');st.leo={who:'meck',phase:'enter',t0:performance.now(),lines:MEC_LINES[Math.random()*MEC_LINES.length|0],i:0,off:70};return;}
+    const x=Math.random();
     if(x<.3){setMode('leo');st.leo={who:'eli',swag:true,phase:'enter',t0:performance.now(),lines:ACADEMY_ELI[Math.random()*ACADEMY_ELI.length|0],i:0,off:70};}
     else if(x<.6){setMode('leo');st.leo={who:JULIA()==='julia'&&imgs.juliaAcad.naturalWidth?'juliaAcad':JULIA(),phase:'enter',t0:performance.now(),lines:ACADEMY_JULIA[Math.random()*ACADEMY_JULIA.length|0],i:0,off:70};}
     else if(x<.9){setMode('leo');st.leo={who:imgs.leoAcad.naturalWidth?'leoAcad':'leo',phase:'enter',t0:performance.now(),lines:[['준비됐어?','레오나르드']],i:0,off:70,
@@ -1260,6 +1272,18 @@ function juliaEvent(){   // 그레이트 홀: 율리아 → 레오나르드 → 
           say(...st.script.lines[0]);}};
         st.menu='choice';st.cur=0;renderMenu();}};}};
 }
+const MEC_NEED=10, MEC_CHANCE=.2;   // 아드리안 호감도 MAX로 복도에서 10회 기다리면 해금 / 해금 뒤 기다릴 때마다 20% 등장
+const MEC_LINES=[
+  [['갑자기 등장하지 마세요. 선배님. 후배 마음은 아주 심약해 쓰러질 수도 있습니다.','루카스'],['(부들부들부들)','메클렌부르크']],
+  [['나 보러 왔어요?','루카스'],['썩 가!','메클렌부르크']],
+  [['할 일 없나 봅니다? 이렇게 배회하고.','루카스'],['당신이랑 말 할 기분 아닙니다....','메클렌부르크']],
+  [['?','루카스'],['인사 안해줍니까?','메클렌부르크'],['웬일로 미운 말을 안하고?','루카스'],['내가 대답 이상하게 하면 싫어할 거잖아...!','메클렌부르크']]];
+const mecModal=document.getElementById('mecModal'), mecOkBtn=document.getElementById('mecOkBtn');
+function mecEvent(){   // 메클렌부르크 해금 이벤트: 팝업 → 등장 대사 → 퇴장
+  st.mecOk=true;saveGame();closeMenu();hideDlg();setMode('talk');
+  mecOkBtn.disabled=true;mecModal.classList.add('show');beep(1320,.08);setTimeout(()=>{mecOkBtn.disabled=false;},1200);}
+mecOkBtn.onclick=()=>{if(mecOkBtn.disabled)return;mecModal.classList.remove('show');
+  setMode('leo');st.leo={who:'meck',phase:'enter',t0:performance.now(),lines:[['내가 98기라는 사실을 잊고 있나 본데.','메클렌부르크']],i:0,off:70};};
 const ACADEMY_ELI=[
   [['어이~ 루카스! 아카데미 복도에서 다 보네?','엘리아스'],['…넌 여기 왜 있는 건데.','루카스'],['수업 땡땡이 치기 좋은 데 찾는 중이지~ 같이 갈래?','엘리아스']],
   [['이 기둥들 봐라~ 하나만 팔아도 평생 술값이다.','엘리아스'],['…그 생각부터 드는 게 대단하다.','루카스'],['루카스 네게 듣는 이런 말은 칭찬이지?','엘리아스']],
@@ -1690,13 +1714,13 @@ function saveGame(){
   if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
-      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,drunkN:st.drunkN,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,leoArtifact:st.leoArtifact,badenOk:st.badenOk,meckOk:st.meckOk,meckWait:st.meckWait,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,eyemaskOk:st.eyemaskOk,blushOk:st.blushOk,dk:st.dk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,dq:st.dq,withLeo:st.withLeo,loverOk:st.loverOk,loverMailT:st.loverMailT,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
+      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,drunkN:st.drunkN,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,leoArtifact:st.leoArtifact,badenOk:st.badenOk,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,mecOk:st.mecOk,mecWait:st.mecWait,eyemaskOk:st.eyemaskOk,blushOk:st.blushOk,dk:st.dk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,dq:st.dq,withLeo:st.withLeo,loverOk:st.loverOk,loverMailT:st.loverMailT,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
   }catch(e){}
 }
 function loadGame(){
   try{
     const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return;
-    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','drunkN','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','leoArtifact','badenOk','meckOk','meckWait','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','eyemaskOk','blushOk','dk','sleepStart','rel','relT','dq','withLeo','loverOk','loverMailT']) if(d[k]!==undefined) st[k]=d[k];
+    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','drunkN','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','leoArtifact','badenOk','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','mecOk','mecWait','eyemaskOk','blushOk','dk','sleepStart','rel','relT','dq','withLeo','loverOk','loverMailT']) if(d[k]!==undefined) st[k]=d[k];
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
@@ -1765,6 +1789,7 @@ document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
 // 업데이트 내역: *알림주기 할 때마다 맨 위에 추가 (가장 최근 것이 접속 시 알림으로 한 번 뜸)
 const UPDATE_LOG=[
+  {id:'n18',t:'26.10.20 15:00',text:'메클렌부르크 추가'},
   {id:'n17',t:'26.10.20 09:00',text:'취권 추가'},
   {id:'n16',t:'26.10.20 07:30',text:'만취 스택 추가'},
   {id:'n15',t:'26.10.20 06:36',text:'야바위 추가'},

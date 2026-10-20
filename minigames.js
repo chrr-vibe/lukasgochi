@@ -133,7 +133,7 @@ const MG4=(()=>{
   const r=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w|0,h|0);};
   const AL=['...##','..###','.####','#####','.####','..###','...##'], AR=AL.map(l=>[...l].reverse().join(''));
   const arrow=(x,y,d,c,k=2)=>(d==='L'?AL:AR).forEach((row,j)=>{for(let i=0;i<row.length;i++)if(row[i]==='#')r(x+i*k,y+j*k,k,k,c);});
-  const SHOW=1500, ROUNDS=10, lenOf=n=>n<=5?5:n;
+  const SHOW=2200, ROUNDS=10, lenOf=n=>n<=5?5:n;
   let s=null;
   function newRound(){s.round++;s.seq=[...Array(lenOf(s.round))].map(()=>Math.random()<.5?'L':'R');s.inp=[];s.phase='ready';s.pt=s.now;}
   function start(onEnd){s={t0:performance.now(),now:0,round:0,score:0,onEnd,res:null};newRound();beep(660,.08);setTimeout(()=>beep(990,.1),160);closeMenu();}
