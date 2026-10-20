@@ -468,8 +468,8 @@ function drawEars(c,t){
   drawEar(c,73,42,-.38-droop,1,-tw);
   drawEar(c,123,44,.42+droop,-1,-tw);
 }
-function isDrunk(){return Date.now()<st.drunkUntil;}
-function getDrunk(){st.drunkUntil=Date.now()+DRUNK_MS;st.drunkN=Math.min(DRUNK_MAX,(st.drunkN|0)+1);saveGame();}   // 술 취하기: 옷은 그대로, 얼굴만 2분간 바뀜
+function isDrunk(){return (st.drunkN|0)>0;}   // 만취 스택이 있는 동안 얼굴이 바뀜 (스택 하나당 2분)
+function getDrunk(){if(!(st.drunkN|0)||st.drunkUntil<=Date.now())st.drunkUntil=Date.now()+DRUNK_MS;st.drunkN=Math.min(DRUNK_MAX,(st.drunkN|0)+1);saveGame();}   // drunkUntil = 다음 스택이 하나 사라지는 시각   // 술 취하기: 옷은 그대로, 얼굴만 2분간 바뀜
 function bdayEvent(){   // 생일: 어디에 있든 레오나르드 등장 (이미 받았거나 가진 꼬깔이면 해금 없이 축하만)
   st._bdayFired=true;st._bdayNow=true;st.cry=false;st.lastPet=Date.now();closeMenu();hideDlg();setMode('leo');
   const home=st.withLeo&&st.room==='bed';
@@ -725,7 +725,7 @@ function fxThink(t){
 /* ================= leonard sequence ================= */
 function leoStart(){
   if(isDrunk()||st.poison||(st.drunkN|0)>0){   // 술 취했거나 독약 상태로 만나면: 고정 대사, 관계 -1, 대신 술·독약 바로 해제
-    st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[LEO_DRUNK[0],'레오나르드'],[LEO_DRUNK[1],'루카스',()=>{st.drunkUntil=0;st.drunkN=Math.max(0,(st.drunkN|0)-1);st.poison=Math.max(0,(st.poison|0)-1);saveGame();}],...((st.drunkN|0)>=DRUNK_MAX?[['레오나르드가 나를 한심하게 쳐다봤다. 자존심 상한다...','루카스']]:[])],i:0,off:70};
+    st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[LEO_DRUNK[0],'레오나르드'],[LEO_DRUNK[1],'루카스',()=>{st.drunkN=Math.max(0,(st.drunkN|0)-1);if(!st.drunkN)st.drunkUntil=0;st.poison=Math.max(0,(st.poison|0)-1);saveGame();}],...((st.drunkN|0)>=DRUNK_MAX?[['자존심 상한다...','루카스']]:[])],i:0,off:70};
     st.rel=Math.max(0,st.rel-1);saveGame();return;
   }
   if(st.room==='library' && infWindow()){   // 오후 3~4시 도서관: 잠입 제안 (좋아/싫어)
@@ -839,6 +839,8 @@ function frame(now){
   if(!bdayWindow()){st._bdayPets=0;st._bdayFired=false;}
   if(st.mode==='sleep'){ if(!st.sleepStart) st.sleepStart=DN; else if(!st.eyemaskOk && DN-st.sleepStart>=EYEMASK_SLEEP){st.eyemaskOk=true;saveGame();toast('✦ 수면 안대 해금! (상점)',2200);} }
   else if(st.sleepStart) st.sleepStart=0;
+  if(!(st.drunkN|0) && st.drunkUntil>DN){st.drunkN=1;}   // 예전 저장(스택 없는 취함): 스택 1로 이어받음
+  while((st.drunkN|0)>0 && DN>=st.drunkUntil){st.drunkN--;st.drunkUntil=st.drunkN>0?st.drunkUntil+DRUNK_MS:0;saveGame();}   // 2분마다 만취 스택 하나씩 감소
   if(st.mode==='sleep' && st.sleepStart && (st.drunkN|0)>0 && DN-st.sleepStart>=DRUNK_SLEEP_MS){st.drunkN=0;st.drunkUntil=0;saveGame();toast('✦ 술이 깼다.',1800);}   // 1분 이상 자면 만취 전부 해제
   if(st.inf && !infActive() && !st.trans && !MG2.active()) infEnd();
   if(st.cookStreak && !(chefWindow()&&st.room==='kitchen')) st.cookStreak=0;
