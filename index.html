@@ -743,6 +743,14 @@ function fxThink(t){
     for(let i=0;i<Math.min(3,k%6-1);i++) R(ctx,x+9+i*4,y-10,2,2,'#3b2a46'); }
 }
 /* ================= leonard sequence ================= */
+function drunkLeoLines(){   // 만취 상태로 레오나르드를 만났을 때: 고정 대사 (3회면 한 줄 더). 스택 -1·관계 -1은 호출한 쪽 fx/rel 처리
+  dkMark_if3();
+  return [[LEO_DRUNK[0],'레오나르드'],[LEO_DRUNK[1],'루카스',drunkLeoFx],...((st.drunkN|0)>=DRUNK_MAX?[['자존심 상한다...','루카스']]:[])];}
+function dkMark_if3(){if((st.drunkN|0)>=DRUNK_MAX)dkMark('l');}
+function drunkLeoFx(){st.drunkN=Math.max(0,(st.drunkN|0)-1);if(!st.drunkN)st.drunkUntil=0;saveGame();}
+function drunkLeoScript(){   // 부르기·왕세자 방 대화하기: 스크립트로 같은 대사 (스택 -1, 관계 -1)
+  const lines=drunkLeoLines(); drunkLeoFx(); st.rel=Math.max(0,st.rel-1); saveGame();
+  st.script={i:0,lines:lines.map(l=>[l[0],l[1]]),after:()=>setMode('idle')}; say(...st.script.lines[0]);}
 function leoStart(){
   if((st.drunkN|0)>=DRUNK_MAX)dkMark('l');   // 만취 3회로 레오나르드를 만남 (3회 대사)
   if(isDrunk()||st.poison||(st.drunkN|0)>0){   // 술 취했거나 독약 상태로 만나면: 고정 대사, 관계 -1, 대신 술·독약 바로 해제
@@ -1080,6 +1088,7 @@ function doAction(m){
     if(m.id==='talk'&&st.room==='bprince'){closeMenu();beep(1320,.08);setMode('talk');say('✦ 율리아와 유익한 대화를 했다.','');return;}   // 대공자 방 대화하기
     if(m.id==='talk'&&st.room==='lhouse'&&(st.drunkN|0)>=DRUNK_MAX){closeMenu();beep(1320,.08);setMode('talk');st.script={i:0,lines:[['그의 기분이 좋지 않아 보인다...','루카스'],['말 아낄게요.','애인']],after:()=>setMode('idle')};say(...st.script.lines[0]);return;}   // 만취 3회: 애인 반응
     if(m.id==='talk'&&st.room==='lhouse'){closeMenu();beep(1320,.08);setMode('talk');say('그는 자꾸 낯 간지러운 말만 한다.');return;}   // 동료의 집 대화하기
+    if(m.id==='talk'&&(st.drunkN|0)>0&&((st.withLeo&&st.room==='bed')||st.room==='prince')){closeMenu();beep(1320,.08);setMode('talk');drunkLeoScript();return;}   // 만취: 불러온/왕세자 방 레오나르드도 술을 해소해 줌
     if(m.id==='talk'&&st.room==='prince'){closeMenu();beep(1320,.08);setMode('talk');say('✦ 레오나르드와 유익한 시간을 보냈다.','');return;}   // 왕세자 방 대화하기
     if(m.id==='talk'&&st.withLeo&&st.room==='bed'&&(st.wear.bday||st.wear.eyemask)){closeMenu();beep(1320,.08);setMode('leo');   // 방에 부른 레오나르드: 악세사리별 대사
       const opts=[];if(st.wear.bday)opts.push([['오늘은 내가 네게 다 맞출게.','레오나르드']]);
@@ -1147,6 +1156,8 @@ function doAction(m){
   if(m.id==='leo'){st.leo=null;setMode('leo');leoStart();return;}
   if(m.id==='eli'){st.leo=null;setMode('leo');eliStart();return;}
   if(m.id==='call'){st.leo=null;if(st.withLeo){callLeo();return;}setMode('leo');callLeo();return;}
+  if(m.id==='gleo'&&(st.drunkN|0)>0){   // 전정: 만취면 공원에서처럼 술 해소 대사
+    st.leo=null;setMode('leo');st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:drunkLeoLines(),i:0,off:70};st.rel=Math.max(0,st.rel-1);saveGame();return;}
   if(m.id==='gleo'){   // 전정: 레오나르드와 대화
     const P=[['좋은 데 산다?','언제든 환영이야.'],['크다...','여기서 살아.'],['예고하고 등장해.','하하.']][Math.random()*3|0];
     st.leo=null;setMode('leo');st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[P[0],'루카스'],[P[1],'레오나르드']],i:0,off:70};return;}
