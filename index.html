@@ -346,7 +346,8 @@ const ELI_BUDDY=[
 const LEO_DRUNK=['사랑하는 자여, 네 영혼이 잘됨 같이...','레오나르드가 나를 한심하게 봤다.'];
 const PICK=[['돈을 주웠다! (+100G)','smile',100],['남의 편지를 주웠다…','idle',0],['좋은 책을 얻었다!','smile',0]];
 const REL_MAX=10, REL_DECAY=60*60*1000;   // 관계: 레오나르드 만날 때마다 +1, 1시간마다 -1, 가득 차면 방에 부를 수 있음
-const DRUNK_MS=2*60*1000;
+const DRUNK_MS=2*60*1000, DRUNK_MAX=3, DRUNK_SLEEP_MS=60*1000;   // 만취: 엘리아스 술은 3회까지 쌓임 (레오나르드 1회씩 해제 / 1분 이상 자면 전부 해제)
+const ELI_MANCHI=[['루카스. 너 좀 심각해. 우리의 모범생은 어디 간거야?','엘리아스'],['자존심 상한다...','루카스']];
 // 게임 시계: 현실 1시간 = 게임 24시간, 현실 정각에 게임 하루 시작
 function gameMin(){const d=new Date();return ((d.getMinutes()*60+d.getSeconds())*1000+d.getMilliseconds())/3600000*1440;}
 function gameHour(){return Math.floor(gameMin()/60);}
@@ -366,7 +367,7 @@ const TEST={sickAfter:60*60*1000, cryAfter:10*60*1000, hungryAfter:3*60*60*1000,
 
 const now0=performance.now(), D0=Date.now();
 const st={room:'bed',outfit:'basic',mode:'idle',modeT:now0,menu:null,cur:0,trans:0,transTo:null,dlg:null,
-          sick:false,cry:false,hungry:false,lastSleep:D0,lastPet:D0,lastEat:D0,gold:0,owned:{},wear:{},lastCook:null,drunkUntil:0,bro:null,poison:0,script:null,inf:null,cookStreak:0,chefOk:false,dead:false,cookOk:0,glovesOk:false,bunnyOk:false,relMaxSince:0,artifactOk:false,maskOk:false,berryOk:false,hungerAsked:false,letter:0,letterDone:0,bdayOk:false,eyemaskOk:false,sleepStart:0,_bdayPets:0,rel:0,relT:D0,withLeo:false,theme:'1',bg:{type:'preset',i:0},lucX:0,leo:null,pickFace:'idle'};
+          sick:false,cry:false,hungry:false,lastSleep:D0,lastPet:D0,lastEat:D0,gold:0,owned:{},wear:{},lastCook:null,drunkUntil:0,drunkN:0,bro:null,poison:0,script:null,inf:null,cookStreak:0,chefOk:false,dead:false,cookOk:0,glovesOk:false,bunnyOk:false,relMaxSince:0,artifactOk:false,maskOk:false,berryOk:false,hungerAsked:false,letter:0,letterDone:0,bdayOk:false,eyemaskOk:false,sleepStart:0,_bdayPets:0,rel:0,relT:D0,withLeo:false,theme:'1',bg:{type:'preset',i:0},lucX:0,leo:null,pickFace:'idle'};
 
 /* ================= sound ================= */
 let AC=null;
@@ -468,7 +469,7 @@ function drawEars(c,t){
   drawEar(c,123,44,.42+droop,-1,-tw);
 }
 function isDrunk(){return Date.now()<st.drunkUntil;}
-function getDrunk(){st.drunkUntil=Date.now()+DRUNK_MS;saveGame();}   // 술 취하기: 옷은 그대로, 얼굴만 2분간 바뀜
+function getDrunk(){st.drunkUntil=Date.now()+DRUNK_MS;st.drunkN=Math.min(DRUNK_MAX,(st.drunkN|0)+1);saveGame();}   // 술 취하기: 옷은 그대로, 얼굴만 2분간 바뀜
 function bdayEvent(){   // 생일: 어디에 있든 레오나르드 등장 (이미 받았거나 가진 꼬깔이면 해금 없이 축하만)
   st._bdayFired=true;st._bdayNow=true;st.cry=false;st.lastPet=Date.now();closeMenu();hideDlg();setMode('leo');
   const home=st.withLeo&&st.room==='bed';
@@ -723,8 +724,8 @@ function fxThink(t){
 }
 /* ================= leonard sequence ================= */
 function leoStart(){
-  if(isDrunk()||st.poison){   // 술 취했거나 독약 상태로 만나면: 고정 대사, 관계 -1, 대신 술·독약 바로 해제
-    st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[LEO_DRUNK[0],'레오나르드'],[LEO_DRUNK[1],'루카스',()=>{st.drunkUntil=0;st.poison=Math.max(0,(st.poison|0)-1);saveGame();}]],i:0,off:70};
+  if(isDrunk()||st.poison||(st.drunkN|0)>0){   // 술 취했거나 독약 상태로 만나면: 고정 대사, 관계 -1, 대신 술·독약 바로 해제
+    st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[LEO_DRUNK[0],'레오나르드'],[LEO_DRUNK[1],'루카스',()=>{st.drunkUntil=0;st.drunkN=Math.max(0,(st.drunkN|0)-1);st.poison=Math.max(0,(st.poison|0)-1);saveGame();}]],i:0,off:70};
     st.rel=Math.max(0,st.rel-1);saveGame();return;
   }
   if(st.room==='library' && infWindow()){   // 오후 3~4시 도서관: 잠입 제안 (좋아/싫어)
@@ -765,8 +766,9 @@ function runScript(t){   // 짧은 대사 묶음 (등장 연출 없이)
 }
 function eliStart(){
   const drunk=Math.random()<.5;
-  const lines=drunk?ELI_DRUNK:[...ELI_BUDDY[Math.random()*ELI_BUDDY.length|0],['✦ 즐거운 대화를 했다.','']];
-  st.leo={who:'eli',swag:!drunk,phase:'enter',t0:performance.now(),lines,i:0,off:70};
+  const full=(st.drunkN|0)>=DRUNK_MAX;   // 만취 3회: 더 취하지도, 돈도 못 받음
+  const lines=full?ELI_MANCHI:drunk?ELI_DRUNK:[...ELI_BUDDY[Math.random()*ELI_BUDDY.length|0],['✦ 즐거운 대화를 했다.','']];
+  st.leo={who:'eli',swag:!drunk&&!full,phase:'enter',t0:performance.now(),lines,i:0,off:70};
 }
 function leoBusy(){return !!st.leo && st.mode==='leo' && st.leo.phase!=='exit';}   // 등장·대화 중
 function leoLine(L){const [text,name,fx]=L.lines[L.i];if(fx)fx();say(text,name);}
@@ -831,12 +833,13 @@ function frame(now){
   if(st.mode==='eat') st.lastEat=DN;
   if(st.bro && DN>=st.bro.until && !st.trans && st.mode!=='mg' && !st.broAway) broEnd();
   const gm=gameMin(); clockEl.textContent=(isNight()?'🌙 ':'☀ ')+String(Math.floor(gm/60)).padStart(2,'0')+':'+String(Math.floor(gm%60)).padStart(2,'0');
-  const hud=(st.bro?'⏳ '+fmt(st.bro.until-DN):st.inf?'🕵 잠입 중':'')+'\n☠ 독약'.repeat(st.poison|0);   // 독약 스택은 세로로 쌓임
+  const hud=(st.bro?'⏳ '+fmt(st.bro.until-DN):st.inf?'🕵 잠입 중':'')+'\n☠ 독약'.repeat(st.poison|0)+'\n🍺 만취'.repeat(st.drunkN|0);   // 독약 스택은 세로로 쌓임
   broTimer.style.display=hud?'block':'none'; if(broTimer._t!==hud){broTimer._t=hud;broTimer.innerHTML=hud.replace(/^\n/,'').split('\n').join('<br>');}
   const gray=(st.poison|0)>=POISON_WARN||st.dead; if(eggHolder._g!==gray){eggHolder._g=gray;eggHolder.style.filter=gray?'grayscale(1)':'';}
   if(!bdayWindow()){st._bdayPets=0;st._bdayFired=false;}
   if(st.mode==='sleep'){ if(!st.sleepStart) st.sleepStart=DN; else if(!st.eyemaskOk && DN-st.sleepStart>=EYEMASK_SLEEP){st.eyemaskOk=true;saveGame();toast('✦ 수면 안대 해금! (상점)',2200);} }
   else if(st.sleepStart) st.sleepStart=0;
+  if(st.mode==='sleep' && st.sleepStart && (st.drunkN|0)>0 && DN-st.sleepStart>=DRUNK_SLEEP_MS){st.drunkN=0;st.drunkUntil=0;saveGame();toast('✦ 술이 깼다.',1800);}   // 1분 이상 자면 만취 전부 해제
   if(st.inf && !infActive() && !st.trans && !MG2.active()) infEnd();
   if(st.cookStreak && !(chefWindow()&&st.room==='kitchen')) st.cookStreak=0;
   runScript(t);
@@ -1633,13 +1636,13 @@ function saveGame(){
   if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
-      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,leoArtifact:st.leoArtifact,badenOk:st.badenOk,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,eyemaskOk:st.eyemaskOk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,dq:st.dq,withLeo:st.withLeo,loverOk:st.loverOk,loverMailT:st.loverMailT,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
+      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,drunkN:st.drunkN,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,leoArtifact:st.leoArtifact,badenOk:st.badenOk,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,eyemaskOk:st.eyemaskOk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,dq:st.dq,withLeo:st.withLeo,loverOk:st.loverOk,loverMailT:st.loverMailT,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
   }catch(e){}
 }
 function loadGame(){
   try{
     const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return;
-    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','leoArtifact','badenOk','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','eyemaskOk','sleepStart','rel','relT','dq','withLeo','loverOk','loverMailT']) if(d[k]!==undefined) st[k]=d[k];
+    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','drunkN','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','leoArtifact','badenOk','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','eyemaskOk','sleepStart','rel','relT','dq','withLeo','loverOk','loverMailT']) if(d[k]!==undefined) st[k]=d[k];
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
@@ -1708,6 +1711,7 @@ document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
 // 업데이트 내역: *알림주기 할 때마다 맨 위에 추가 (가장 최근 것이 접속 시 알림으로 한 번 뜸)
 const UPDATE_LOG=[
+  {id:'n16',t:'26.10.20 07:30',text:'만취 스택 추가'},
   {id:'n15',t:'26.10.20 06:36',text:'야바위 추가'},
   {id:'n14',t:'26.10.19 21:20',text:'아드리안 아바타 변경\n일일 퀘스트 추가\n상점 아이템 추가'},
   {id:'n13',t:'26.10.19 11:00',text:'상점가 추가'},
