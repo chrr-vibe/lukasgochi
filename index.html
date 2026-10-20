@@ -471,7 +471,7 @@ function drawEars(c,t){
   drawEar(c,123,44,.42+droop,-1,-tw);
 }
 function dkMark(k){   // 취권 해금 조건 5개: a 만취 3회 달성 · l 3회 상태로 레오나르드 · e 엘리아스 · f 밥 먹기 시도 · s 잠자기로 해소
-  if(!st.dk)st.dk={}; if(st.dk[k])return; if(k!=='a'&&!st.dk.a)return; st.dk[k]=true;   // a(만취 3회 달성) 이후의 행동만 인정
+  if(!st.dk)st.dk={}; if(st.dk[k])return; st.dk[k]=true;
   if(!st.blushOk&&['a','l','e','f','s'].every(x=>st.dk[x])){st.blushOk=true;setTimeout(()=>toast('✦ 취권 해금! (상점)',2200),600);}
   saveGame();}
 function isDrunk(){return (st.drunkN|0)>0;}   // 만취 스택이 있는 동안 얼굴이 바뀜 (스택 하나당 2분)
@@ -731,7 +731,7 @@ function fxThink(t){
 }
 /* ================= leonard sequence ================= */
 function leoStart(){
-  dkMark('l');
+  if((st.drunkN|0)>=DRUNK_MAX)dkMark('l');   // 만취 3회로 레오나르드를 만남 (3회 대사)
   if(isDrunk()||st.poison||(st.drunkN|0)>0){   // 술 취했거나 독약 상태로 만나면: 고정 대사, 관계 -1, 대신 술·독약 바로 해제
     if((st.drunkN|0)>=DRUNK_MAX)dkMark('l');
     st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[LEO_DRUNK[0],'레오나르드'],[LEO_DRUNK[1],'루카스',()=>{st.drunkN=Math.max(0,(st.drunkN|0)-1);if(!st.drunkN)st.drunkUntil=0;st.poison=Math.max(0,(st.poison|0)-1);saveGame();}],...((st.drunkN|0)>=DRUNK_MAX?[['자존심 상한다...','루카스']]:[])],i:0,off:70};
@@ -774,7 +774,7 @@ function runScript(t){   // 짧은 대사 묶음 (등장 연출 없이)
   if(++S.i<S.lines.length) say(...S.lines[S.i]); else {st.script=null;S.after();}
 }
 function eliStart(){
-  dkMark('e');
+  if((st.drunkN|0)>=DRUNK_MAX)dkMark('e');   // 만취 3회로 엘리아스를 만남 (3회 대사)
   const drunk=Math.random()<.5;
   const full=(st.drunkN|0)>=DRUNK_MAX;   // 만취 3회: 더 취하지도, 돈도 못 받음
   const lines=full?ELI_MANCHI:drunk?ELI_DRUNK:[...ELI_BUDDY[Math.random()*ELI_BUDDY.length|0],['✦ 즐거운 대화를 했다.','']];
@@ -1141,8 +1141,8 @@ function doAction(m){
       after:()=>{setMode('leo');hideDlg();st.leo={who:'lover',phase:'wait',t0:performance.now(),lines:[],i:0,off:0};st.loverDish=performance.now();}};}
     else setMode('dish');
     return;}   // 동료의 집: 애인이 읽어줌
-  if(m.id==='leat'){st.stew=(st.drunkN|0)>=DRUNK_MAX;dkMark('f');setMode('eat');return;}   // 만취 3회: 애인이 스튜를 끓여줌 (허기 회복 + 만취 1회 해제)
-  if(m.id==='eat'||m.id==='taste')dkMark('f');   // 취권 조건: 밥 먹기 시도
+  if(m.id==='leat'){st.stew=(st.drunkN|0)>=DRUNK_MAX;if(st.stew)dkMark('f');setMode('eat');return;}   // 만취 3회: 애인이 스튜를 끓여줌 (허기 회복 + 만취 1회 해제)
+  if((m.id==='eat'||m.id==='taste')&&(st.drunkN|0)>=DRUNK_MAX)dkMark('f');   // 취권 조건: 만취 3회에서 밥 먹기 시도
   if((m.id==='eat'||m.id==='taste')&&(st.drunkN|0)>=DRUNK_MAX){setMode('talk');say(DRUNK_NOFOOD);return;}   // 만취 3회: 속이 안 좋아 못 먹음 (허기·스택 그대로)
   if(m.id==='lsleep'){if(st.mode==='sleep'){setMode('idle');toast('잘 잤다.',1200);}else setMode('sleep');return;}
   if(m.id==='disguise'){st.niko=!st.niko;saveGame();setMode('pet');beep(st.niko?1760:660,.08);toast(st.niko?'✦ 니콜라우스로 변장했다.':'✦ 변장을 풀었다.',1600);return;}
@@ -1282,7 +1282,7 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
   if(act==='idrop'){take();closeMenu();beep(440,.08);toast('✦ '+ITEMS[k].name+'을(를) 버렸다.');return;}
   if(act==='iuse'&&(k==='partifact'||k==='flower')){closeMenu();beep(220,.15);toast('내가 사용할 수 없어.');return;}
   if(act==='iuse'){closeMenu();beep(1320,.08);
-    if(k==='cake')dkMark('f');
+    if(k==='cake'&&(st.drunkN|0)>=DRUNK_MAX)dkMark('f');
     if(k==='cake'&&(st.drunkN|0)>=DRUNK_MAX){setMode('talk');say(DRUNK_NOFOOD);return;}   // 만취 3회: 케이크도 못 먹음 (아이템 그대로)
     if(k==='cake'){take();dqEvent('cakeEat');st.lastEat=Math.min(Date.now(),st.lastEat+TEST.hungryAfter*.3);st.hungry=false;st.hungerAsked=false;saveGame();setMode('ceat');}   // 어디서든 먹기: 허기 3칸
     return;}
