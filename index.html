@@ -725,7 +725,7 @@ function fxThink(t){
 /* ================= leonard sequence ================= */
 function leoStart(){
   if(isDrunk()||st.poison||(st.drunkN|0)>0){   // 술 취했거나 독약 상태로 만나면: 고정 대사, 관계 -1, 대신 술·독약 바로 해제
-    st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[LEO_DRUNK[0],'레오나르드'],[LEO_DRUNK[1],'루카스',()=>{st.drunkUntil=0;st.drunkN=Math.max(0,(st.drunkN|0)-1);st.poison=Math.max(0,(st.poison|0)-1);saveGame();}]],i:0,off:70};
+    st.leo={who:'leo',phase:'enter',t0:performance.now(),lines:[[LEO_DRUNK[0],'레오나르드'],[LEO_DRUNK[1],'루카스',()=>{st.drunkUntil=0;st.drunkN=Math.max(0,(st.drunkN|0)-1);st.poison=Math.max(0,(st.poison|0)-1);saveGame();}],...((st.drunkN|0)>=DRUNK_MAX?[['레오나르드가 나를 한심하게 쳐다봤다. 자존심 상한다...','루카스']]:[])],i:0,off:70};
     st.rel=Math.max(0,st.rel-1);saveGame();return;
   }
   if(st.room==='library' && infWindow()){   // 오후 3~4시 도서관: 잠입 제안 (좋아/싫어)
@@ -1042,6 +1042,7 @@ function doAction(m){
       const [a,b]=INF_TALK[Math.random()*INF_TALK.length|0];st.script={i:0,lines:[[a,'제롬'],[b,'에라스미오스']],after:()=>setMode('idle')};say(a,'제롬');return;}
     if(m.id==='talk'&&st.bro){closeMenu();beep(1320,.08);setMode('talk');say('루카. 누구와 말하는 거야?','아드리안');return;}   // 루카스는 말을 못 함
     if(m.id==='talk'&&st.room==='bprince'){closeMenu();beep(1320,.08);setMode('talk');say('✦ 율리아와 유익한 대화를 했다.','');return;}   // 대공자 방 대화하기
+    if(m.id==='talk'&&st.room==='lhouse'&&(st.drunkN|0)>=DRUNK_MAX){closeMenu();beep(1320,.08);setMode('talk');st.script={i:0,lines:[['그의 기분이 좋지 않아 보인다...','루카스'],['말 아낄게요.','애인']],after:()=>setMode('idle')};say(...st.script.lines[0]);return;}   // 만취 3회: 애인 반응
     if(m.id==='talk'&&st.room==='lhouse'){closeMenu();beep(1320,.08);setMode('talk');say('그는 자꾸 낯 간지러운 말만 한다.');return;}   // 동료의 집 대화하기
     if(m.id==='talk'&&st.room==='prince'){closeMenu();beep(1320,.08);setMode('talk');say('✦ 레오나르드와 유익한 시간을 보냈다.','');return;}   // 왕세자 방 대화하기
     if(m.id==='talk'&&st.withLeo&&st.room==='bed'&&(st.wear.bday||st.wear.eyemask)){closeMenu();beep(1320,.08);setMode('leo');   // 방에 부른 레오나르드: 악세사리별 대사
