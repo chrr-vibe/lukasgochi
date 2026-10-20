@@ -347,6 +347,7 @@ const LEO_DRUNK=['사랑하는 자여, 네 영혼이 잘됨 같이...','레오�
 const PICK=[['돈을 주웠다! (+100G)','smile',100],['남의 편지를 주웠다…','idle',0],['좋은 책을 얻었다!','smile',0]];
 const REL_MAX=10, REL_DECAY=60*60*1000;   // 관계: 레오나르드 만날 때마다 +1, 1시간마다 -1, 가득 차면 방에 부를 수 있음
 const DRUNK_MS=2*60*1000, DRUNK_MAX=3, DRUNK_SLEEP_MS=60*1000;   // 만취: 엘리아스 술은 3회까지 쌓임 (레오나르드 1회씩 해제 / 1분 이상 자면 전부 해제)
+const DRUNK_NOFOOD='속이 좋지 않아 들어가지 않는다...';
 const ELI_MANCHI=[['루카스. 너 좀 심각해. 우리의 모범생은 어디 간거야?','엘리아스'],['자존심 상한다...','루카스']];
 // 게임 시계: 현실 1시간 = 게임 24시간, 현실 정각에 게임 하루 시작
 function gameMin(){const d=new Date();return ((d.getMinutes()*60+d.getSeconds())*1000+d.getMilliseconds())/3600000*1440;}
@@ -873,6 +874,7 @@ function frame(now){
     st.cookOk=ok?(st.cookOk|0)+1:0; const glove=st.cookOk>=GLOVE_STREAK&&!st.glovesOk; if(glove)st.glovesOk=true; st.lastCook=ok?'ok':'fail'; const cake=st.wear.bday; let cakeIn=false; if(ok&&cake)cakeIn=invAdd('cake'); else if(ok)st.gold+=100; dqEvent('cook',ok); if(cakeIn)dqEvent('cakeMade'); st.pickFace=ok?'smile':'idle'; setMode('pick'); const chef=st.cookStreak>=CHEF_STREAK&&!st.chefOk; if(chef)st.chefOk=true; say((ok?(cake?(cakeIn?'✦ 케이크를 만들었다! (소지품)':'✦ 케이크를 만들었지만 소지품이 가득 찼다…'):'✦ 성공했다! (+100G)'):'✦ 실패했다…')+(chef?' ✦ 요리사 모자 해금! (상점)':'')+(glove?' ✦ 고무장갑 해금! (상점)':''),''); saveGame(); }
   else if(st.mode==='taste' && el>2500){ const lc=st.lastCook; setMode('talk'); say(lc==='ok'?'나도 이제 요리왕이다.':lc==='fail'?'레오나르드는 먹어줄까?':'…아직 만든 게 없잖아.'); }
   else if(st.mode==='dish' && el>3000){ setMode('talk'); say('기분이 정돈됐다. 이래서 손을 쓰는 모양이다.'); }
+  else if(st.mode==='eat' && el>TEST.timed && st.stew && st.room==='lhouse'){ st.stew=false; if((st.drunkN|0)>0){st.drunkN--;if(!st.drunkN)st.drunkUntil=0;} saveGame(); setMode('talk'); say('그가 내가 좋아하는 스튜를 끓여주었다. 속이 나아진다...'); }
   else if(st.mode==='eat' && el>TEST.timed){ setMode('talk'); say(st.room==='lhouse'?'그가 먹여주었다... 내 손발이 보이지 않는 모양이다.':'배부르다.'); }
   else if(st.mode==='ceat' && el>2500){ setMode('talk'); say('✦ 케이크를 먹었다. (허기 +3칸)',''); }
   if(st.menu==='status' && (t/500|0)!==st._sTick){st._sTick=t/500|0; renderMenu();}
@@ -1129,7 +1131,8 @@ function doAction(m){
       after:()=>{setMode('leo');hideDlg();st.leo={who:'lover',phase:'wait',t0:performance.now(),lines:[],i:0,off:0};st.loverDish=performance.now();}};}
     else setMode('dish');
     return;}   // 동료의 집: 애인이 읽어줌
-  if(m.id==='leat'){setMode('eat');return;}
+  if(m.id==='leat'){st.stew=(st.drunkN|0)>=DRUNK_MAX;setMode('eat');return;}   // 만취 3회: 애인이 스튜를 끓여줌 (허기 회복 + 만취 1회 해제)
+  if((m.id==='eat'||m.id==='taste')&&(st.drunkN|0)>=DRUNK_MAX){setMode('talk');say(DRUNK_NOFOOD);return;}   // 만취 3회: 속이 안 좋아 못 먹음 (허기·스택 그대로)
   if(m.id==='lsleep'){if(st.mode==='sleep'){setMode('idle');toast('잘 잤다.',1200);}else setMode('sleep');return;}
   if(m.id==='disguise'){st.niko=!st.niko;saveGame();setMode('pet');beep(st.niko?1760:660,.08);toast(st.niko?'✦ 니콜라우스로 변장했다.':'✦ 변장을 풀었다.',1600);return;}
   if(m.id==='await'){   // 아카데미 기다리기: 엘리아스 30% · 율리아 30% · 레오나르드 30% (→ 기억 결투)
@@ -1268,6 +1271,7 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
   if(act==='idrop'){take();closeMenu();beep(440,.08);toast('✦ '+ITEMS[k].name+'을(를) 버렸다.');return;}
   if(act==='iuse'&&(k==='partifact'||k==='flower')){closeMenu();beep(220,.15);toast('내가 사용할 수 없어.');return;}
   if(act==='iuse'){closeMenu();beep(1320,.08);
+    if(k==='cake'&&(st.drunkN|0)>=DRUNK_MAX){setMode('talk');say(DRUNK_NOFOOD);return;}   // 만취 3회: 케이크도 못 먹음 (아이템 그대로)
     if(k==='cake'){take();dqEvent('cakeEat');st.lastEat=Math.min(Date.now(),st.lastEat+TEST.hungryAfter*.3);st.hungry=false;st.hungerAsked=false;saveGame();setMode('ceat');}   // 어디서든 먹기: 허기 3칸
     return;}
   // 주기: 옆에 레오나르드/아드리안이 있을 때만
