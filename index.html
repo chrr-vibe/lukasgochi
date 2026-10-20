@@ -642,10 +642,20 @@ function drawLeoHome(x,t){   // 방에 함께 있는 레오나르드 (신문 읽
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure('leoHome',t),Math.round(x),CHY,CH,CH);
   if(st.mode==='news') drawLeoReading(x,'news');
 }
+function fxLoverTears(x,t){   // 독약 스택이 있으면 동료의 집 애인이 눈물을 흘림 (눈은 그대로, 루카스 눈물과 같은 모션)
+  const k=CH/192;
+  [[78,99,0],[84,99,.37],[108,99,.18],[114,99,.55]].forEach(([sx,sy,o],i)=>{
+    const ph=((t/1000)*1.1+o)%1;
+    let px=x+sx*k, py=CHY+sy*k, yy=py+ph*14*.6, a=ph<.85?1:1-(ph-.85)/.15;
+    if(ph>.55){ yy=py+7.7*.6+(ph-.55)*30*.6; px+=(i%2?1:-1)*(ph-.55)*6*.6; }
+    ctx.globalAlpha=a;R(ctx,px,yy,2,3,'#5fb6ff');R(ctx,px,yy,1,1,'#ffffff');ctx.globalAlpha=1;
+  });
+}
 function drawLover(x,t){   // 동료의 집: 늘 있는 애인 (책·신문은 레오나르드처럼 읽어줌 / 같이 잘 땐 자는 그림)
   const sl=st.mode==='sleep', who=sl&&imgs.loverSleep.naturalWidth?'loverSleep':'lover';
   if(!imgs[who].naturalWidth) return;
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure(who,t),Math.round(x),CHY,CH,CH);
+  if((st.poison|0)>0&&!sl) fxLoverTears(Math.round(x),t);   // 독약 1~3스택: 눈물 (스택이 사라지면 평소대로)
   if(st.mode==='lbook'||st.mode==='lnews') drawLeoReading(x,st.mode==='lnews'?'news':'book',true);   // 원래 안경을 쓰고 있어서 레오나르드 안경은 빼고 책·신문만
 }
 function drawLeoReading(x,kind,noGlasses){   // 레오나르드: 안경 + 신문/책
