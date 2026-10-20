@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.chrpvibe.lucasgotchi",
+      "sha256_cert_fingerprints": ["B1:83:1E:F2:75:D7:38:14:C9:0E:0D:8D:42:64:7A:68:CA:93:29:D5:87:E4:00:65:08:17:04:55:12:A9:69:B5"]
+    }
+  }
+]
