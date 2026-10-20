@@ -204,6 +204,9 @@ html,body{height:auto;min-height:100%}
   <div class="modal" id="eventModal"><div class="mbox"><div class="mt">✦ 이벤트가 발생했습니다.</div>
     <div class="bkhint">진행하시겠습니까?</div>
     <div class="mrow"><button class="addbg" id="eventYes">네</button><button class="addbg ghost" id="eventNo">아니오</button></div></div></div>
+  <div class="modal" id="unlockModal"><div class="mbox"><div class="mt">✦ 해금!</div>
+    <div class="bkhint" id="unlockTxt" style="text-align:center;font-size:14px"></div>
+    <div class="mcol"><button class="addbg" id="unlockOk" disabled>확인</button></div></div></div>
   <div class="modal" id="warnModal"><div class="mbox"><div class="mt">☠ 독이 세 겹 쌓였어!</div>
     <div class="bkhint">한 번만 더 독을 먹으면 게임을 계속할 수 없어.<br>지금 <b>게임을 저장(백업)</b>해 둬!<br>레오나르드를 만날 때마다 독이 한 겹씩 풀려.</div>
     <div class="mcol"><button class="addbg" id="warnSave">백업 파일 저장하기</button><button class="addbg ghost" id="warnClose">닫기</button></div></div></div>
@@ -472,7 +475,7 @@ function drawEars(c,t){
 }
 function dkMark(k){   // 취권 해금 조건 5개: a 만취 3회 달성 · l 3회 상태로 레오나르드 · e 엘리아스 · f 밥 먹기 시도 · s 잠자기로 해소
   if(!st.dk)st.dk={}; if(st.dk[k])return; st.dk[k]=true;
-  if(!st.blushOk&&['a','l','e','f','s'].every(x=>st.dk[x])){st.blushOk=true;setTimeout(()=>toast('✦ 취권 해금! (상점)',2200),600);}
+  if(!st.blushOk&&['a','l','e','f','s'].every(x=>st.dk[x])){st.blushOk=true;setTimeout(()=>unlockNotice('취권 해금! (상점)'),600);}
   saveGame();}
 function isDrunk(){return (st.drunkN|0)>0;}   // 만취 스택이 있는 동안 얼굴이 바뀜 (스택 하나당 2분)
 function getDrunk(){if(!(st.drunkN|0)||st.drunkUntil<=Date.now())st.drunkUntil=Date.now()+DRUNK_MS;st.drunkN=Math.min(DRUNK_MAX,(st.drunkN|0)+1);saveGame();if(st.drunkN>=DRUNK_MAX)dkMark('a');}   // drunkUntil = 다음 스택이 하나 사라지는 시각   // 술 취하기: 옷은 그대로, 얼굴만 2분간 바뀜
@@ -480,7 +483,7 @@ function bdayEvent(){   // 생일: 어디에 있든 레오나르드 등장 (이�
   st._bdayFired=true;st._bdayNow=true;st.cry=false;st.lastPet=Date.now();closeMenu();hideDlg();setMode('leo');
   const home=st.withLeo&&st.room==='bed';
   st.leo={who:home?'leoHome':'leo',phase:'enter',t0:performance.now(),i:0,off:70,stay:home,lines:[['생일 축하해. 루카스.','레오나르드'],['생각도 못했다.','루카스',()=>{
-    const first=!st.bdayOk&&!st.owned.bday;st.bdayOk=true;saveGame();setTimeout(()=>{st._bdayNow=false;if(first)toast('✦ 생일 꼬깔 해금! (상점)',2000);},2600);}]]};
+    const first=!st.bdayOk&&!st.owned.bday;st.bdayOk=true;saveGame();setTimeout(()=>{st._bdayNow=false;if(first)unlockNotice('생일 꼬깔 해금! (상점)');},2600);}]]};
 }
 function drawMap(t){   // 지역 지도 (초원 위 구불구불한 길 + 메모)
   const M=st.map, n=MAP_NODES[M.cur], cam=Math.max(0,Math.min(MAP_W-W,n.x-W/2));
@@ -834,7 +837,7 @@ function frame(now){
 
   // ---- 상태 타이머 ----
   const DN=Date.now();
-  if(st.mode==='sleep'&&isNight()){ if(!st._nightSleep) st._nightSleep=t; else if(!st.bunnyOk && t-st._nightSleep>=BUNNY_SLEEP){st.bunnyOk=true;saveGame();toast('✦ 토끼 잠옷 해금! (상점)',2200);} } else st._nightSleep=0;
+  if(st.mode==='sleep'&&isNight()){ if(!st._nightSleep) st._nightSleep=t; else if(!st.bunnyOk && t-st._nightSleep>=BUNNY_SLEEP){st.bunnyOk=true;saveGame();unlockNotice('토끼 잠옷 해금! (상점)');} } else st._nightSleep=0;
   if(st.mode==='sleep'){if(!st.poison)st.lastSleep=DN;st.lastPet=DN;}
   else{
     if(!st.sick && DN-st.lastSleep>TEST.sickAfter) st.sick=true;
@@ -847,7 +850,7 @@ function frame(now){
   broTimer.style.display=hud?'block':'none'; if(broTimer._t!==hud){broTimer._t=hud;broTimer.innerHTML=hud.replace(/^\n/,'').split('\n').join('<br>');}
   const gray=(st.poison|0)>=POISON_WARN||st.dead; if(eggHolder._g!==gray){eggHolder._g=gray;eggHolder.style.filter=gray?'grayscale(1)':'';}
   if(!bdayWindow()){st._bdayPets=0;st._bdayFired=false;}
-  if(st.mode==='sleep'){ if(!st.sleepStart){st.sleepStart=DN;st.sleep3=(st.drunkN|0)>=DRUNK_MAX;} else if(!st.eyemaskOk && DN-st.sleepStart>=EYEMASK_SLEEP){st.eyemaskOk=true;saveGame();toast('✦ 수면 안대 해금! (상점)',2200);} }
+  if(st.mode==='sleep'){ if(!st.sleepStart){st.sleepStart=DN;st.sleep3=(st.drunkN|0)>=DRUNK_MAX;} else if(!st.eyemaskOk && DN-st.sleepStart>=EYEMASK_SLEEP){st.eyemaskOk=true;saveGame();unlockNotice('수면 안대 해금! (상점)');} }
   else if(st.sleepStart) st.sleepStart=0;
   if((st.drunkN|0)>=DRUNK_MAX)dkMark('a');
   if(!(st.drunkN|0) && st.drunkUntil>DN){st.drunkN=1;}   // 예전 저장(스택 없는 취함): 스택 1로 이어받음
@@ -858,7 +861,7 @@ function frame(now){
   runScript(t);
   if(st.fame>0){ while(st.fame>0 && DN-st.fameT>=FAME_DECAY){st.fame--;st.fameT+=FAME_DECAY;} } else st.fameT=DN;
   if(st.rel>0){ while(st.rel>0 && DN-st.relT>=REL_DECAY){st.rel--;st.relT+=REL_DECAY;} if(st.rel===0)st.relT=DN; } else st.relT=DN;
-  if(st.rel>=REL_MAX){ if(!st.relMaxSince) st.relMaxSince=DN; else if(!st.artifactOk && DN-st.relMaxSince>=ARTIFACT_MS){st.artifactOk=true;saveGame();toast('✦ 아티팩트 해금! (상점)',2200);} }
+  if(st.rel>=REL_MAX){ if(!st.relMaxSince) st.relMaxSince=DN; else if(!st.artifactOk && DN-st.relMaxSince>=ARTIFACT_MS){st.artifactOk=true;saveGame();unlockNotice('아티팩트 해금! (상점)');} }
   else st.relMaxSince=0;
   st.hungry = DN-st.lastEat > TEST.hungryAfter;
   if(!st.hungry) st.hungerAsked=false;   // 허기 0: 이벤트 (한 번 물어봄)
@@ -872,7 +875,7 @@ function frame(now){
   else if(['news','book','read'].includes(st.mode) && el>TEST.timed){ const byLeo=st.mode==='news'&&withLeoNow(); setMode('talk'); say(st.room==='bprince'?'율리아는 역시 읽어주지 않는구나.':byLeo?'레오나르드가 신문을 읽어주었다.':'유익했다.'); }
   else if(st.mode==='think' && el>TEST.timed && st.room==='garden'){ setMode('talk'); say('이런 걸 보고 자라서 그렇게 생겼나?'); }
   else if(st.mode==='think' && el>TEST.timed && isNight() && st.room==='park' && Math.random()<ROB_CHANCE){   // 밤 공원: 불량배에게 골드 전부
-    const firstMask=!st.maskOk; st.gold=0;st.maskOk=true;saveGame();setMode('leo');st.script={i:0,lines:[['가진 거 다 내놔.','불량배'],['살다살다 삥을 뜯겨본다...','루카스']],after:()=>{setMode('idle');if(firstMask)toast('✦ 마스크 해금! (상점)',2000);}};say('가진 거 다 내놔.','불량배'); }
+    const firstMask=!st.maskOk; st.gold=0;st.maskOk=true;saveGame();setMode('leo');st.script={i:0,lines:[['가진 거 다 내놔.','불량배'],['살다살다 삥을 뜯겨본다...','루카스']],after:()=>{setMode('idle');if(firstMask)unlockNotice('마스크 해금! (상점)');}};say('가진 거 다 내놔.','불량배'); }
   else if(st.mode==='think' && el>TEST.timed && st.room==='adorm' && Math.random()<.3){   // 아카데미 기숙사: 30% 레오나르드(교복)가 등장 → 허기·멘탈·건강 전부 회복
     const n=Date.now();st.lastEat=n;st.lastPet=n;st.lastSleep=n;st.hungry=false;st.hungerAsked=false;st.sick=false;st.cry=false;saveGame();
     st.leo=null;setMode('leo');st.leo={who:imgs.leoAcad.naturalWidth?'leoAcad':'leo',phase:'enter',t0:performance.now(),lines:[['레오나르드가 나를 빤히 쳐다보다 갔다. 왠지 몸이 가벼워졌다.','']],i:0,off:70}; }
@@ -1023,6 +1026,15 @@ function say(text,name='루카스'){
     if(i>=text.length){clearInterval(typer);st.dlg.done=true;st.dlg.doneT=performance.now();}},55);
 }
 function hideDlg(){clearInterval(typer);clearTimeout(toastTO);toastTO=null;dlgEl.style.display='none';st.dlg=null;}
+const unlockQ=[];
+function unlockNotice(text){   // 해금 알림: 이벤트처럼 확인 버튼을 눌러야 닫힘 (연타로 넘어가지 않게 잠깐 잠김)
+  unlockQ.push(text); if(!unlockModal.classList.contains('show')) unlockNext();}
+function unlockNext(){
+  const t=unlockQ.shift(); if(t===undefined){unlockModal.classList.remove('show');return;}
+  unlockTxt.textContent=t; unlockOk.disabled=true; unlockModal.classList.add('show'); beep(1320,.08);
+  setTimeout(()=>{unlockOk.disabled=false;},1200);}
+const unlockModal=document.getElementById('unlockModal'), unlockTxt=document.getElementById('unlockTxt'), unlockOk=document.getElementById('unlockOk');
+unlockOk.onclick=()=>{if(unlockOk.disabled)return;unlockNext();};
 function toast(text,ms=1600){say(text,'');toastTO=setTimeout(()=>{toastTO=null;if(!['talk','leo','pick'].includes(st.mode))hideDlg();},ms);}
 
 function setMode(m){
@@ -1221,7 +1233,7 @@ function juliaEvent(){   // 그레이트 홀: 율리아 → 레오나르드 → 
           const go=id==='jgo', first=go&&!st.badenOk;
           if(go){st.rel=0;st.relT=Date.now();st.badenOk=true;saveGame();}
           st.script={i:0,lines:[[go?'가야지. 무슨 소리야.':'그래. 안 가.','루카스']],after:()=>{hideDlg();if(st.leo){st.leo.phase='exit';st.leo.t0=performance.now();
-            st.leo.next=()=>{if(first)toast('✦ 바덴 해금! (지도)',2200);else if(go&&!st.niko&&!st.poison){setMode('idle');st.trans=.01;st.transTo='bstreet';toast('✦ 바덴으로 이동했다.',1600);}};}}};   // 해금 뒤엔 응하면 바로 바덴으로
+            st.leo.next=()=>{if(first)unlockNotice('바덴 해금! (지도)');else if(go&&!st.niko&&!st.poison){setMode('idle');st.trans=.01;st.transTo='bstreet';toast('✦ 바덴으로 이동했다.',1600);}};}}};   // 해금 뒤엔 응하면 바로 바덴으로
           say(...st.script.lines[0]);}};
         st.menu='choice';st.cur=0;renderMenu();}};}};
 }
@@ -1260,9 +1272,9 @@ function plEnd(ok){   // 플레로마 잡기 결과 (5번 소탕하면 니콜라
     let fame;
     if(was<PL_UNLOCK) fame='✦ 명성이 올라갔다. ('+st.plClear+'/'+PL_UNLOCK+')';   // 해금 전: 5번까지 숫자 표시
     else if(st.niko){st.fame=Math.min(FAME_MAX,(st.fame|0)+1);st.fameT=Date.now();fame='✦ 명성이 올라갔다.';
-      if(st.fame>=FAME_MAX&&!st.letterOk){st.letterOk=true;setTimeout(()=>toast('✦ 편지 관리 해금! (니콜라우스 방)',2200),5200);setTimeout(()=>fbCheckMail(true),6000);}}   // 해금 후: 니콜라우스로 소탕해야 명성 +1
+      if(st.fame>=FAME_MAX&&!st.letterOk){st.letterOk=true;setTimeout(()=>unlockNotice('편지 관리 해금! (니콜라우스 방)'),5200);setTimeout(()=>fbCheckMail(true),6000);}}   // 해금 후: 니콜라우스로 소탕해야 명성 +1
     saveGame();
-    st.script={i:0,lines:fame?[['✦ 플레로마를 소탕했다.',''],[fame,'']]:[['✦ 플레로마를 소탕했다.','']],after:()=>{setMode('idle');if(was<PL_UNLOCK&&st.plClear>=PL_UNLOCK)toast('✦ 니콜라우스 방 해금! (바이에른 궁)',2200);}};}
+    st.script={i:0,lines:fame?[['✦ 플레로마를 소탕했다.',''],[fame,'']]:[['✦ 플레로마를 소탕했다.','']],after:()=>{setMode('idle');if(was<PL_UNLOCK&&st.plClear>=PL_UNLOCK)unlockNotice('니콜라우스 방 해금! (바이에른 궁)');}};}
   else if(st.niko&&(st.plClear|0)>=PL_UNLOCK&&(st.fame|0)>0){st.fame=Math.max(0,(st.fame|0)-2);st.fameT=Date.now();saveGame();   // 니콜라우스로 실패: 명성 2칸 하락
     st.script={i:0,lines:[['✦ 플레로마가 달아났다...',''],['✦ 명성이 떨어졌다.','']],after:()=>setMode('idle')};}
   else st.script={i:0,lines:[['✦ 플레로마가 달아났다...','']],after:()=>setMode('idle')};
@@ -1722,7 +1734,7 @@ document.getElementById('eventYes').onclick=()=>{   // 레오나르드가 딸기
   eventModal.classList.remove('show'); closeMenu(); hideDlg(); setMode('leo');
   const home=st.withLeo&&st.room==='bed';
   st.leo={who:home?'leoHome':'leo',phase:'enter',t0:performance.now(),i:0,off:70,stay:home,lines:[['아아-.','레오나르드'],['결국 딸기 케이크를 이놈이 먹여주었다.','루카스',()=>{
-    st.lastEat=Date.now()-TEST.hungryAfter/2;st.hungry=false;const first=!st.berryOk;st.berryOk=true;saveGame();if(first)setTimeout(()=>toast('✦ 딸기 장식 해금! (상점)',2000),2600);}]]};
+    st.lastEat=Date.now()-TEST.hungryAfter/2;st.hungry=false;const first=!st.berryOk;st.berryOk=true;saveGame();if(first)setTimeout(()=>unlockNotice('딸기 장식 해금! (상점)'),2600);}]]};
 };
 document.getElementById('warnClose').onclick=()=>warnModal.classList.remove('show');
 document.getElementById('deadReset').onclick=()=>bkfile.click();   // 백업 불러오면 그 상태로 다시
@@ -1730,6 +1742,7 @@ document.getElementById('deadFresh').onclick=()=>{if(!confirm('저장된 진행 
 // 업데이트 알림: id가 바뀌면 한 번 보여줌
 // 업데이트 내역: *알림주기 할 때마다 맨 위에 추가 (가장 최근 것이 접속 시 알림으로 한 번 뜸)
 const UPDATE_LOG=[
+  {id:'n17',t:'26.10.20 09:00',text:'취권 추가'},
   {id:'n16',t:'26.10.20 07:30',text:'만취 스택 추가'},
   {id:'n15',t:'26.10.20 06:36',text:'야바위 추가'},
   {id:'n14',t:'26.10.19 21:20',text:'아드리안 아바타 변경\n일일 퀘스트 추가\n상점 아이템 추가'},
