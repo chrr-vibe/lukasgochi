@@ -1993,10 +1993,10 @@ pwIn.addEventListener('keydown',e=>{if(e.key==='Enter')pwTry();});
 document.getElementById('pwNo').onclick=()=>{pwModal.classList.remove('show');try{pwIn.blur();}catch(e){}};
 const admModal=document.getElementById('admModal'), admIn=document.getElementById('admIn'), admMsg=document.getElementById('admMsg');
 function admOpen(){admIn.value='';admMsg.textContent='';admModal.classList.add('show');setTimeout(()=>{try{admIn.focus();}catch(e){}},50);}
-function admTry(){   // 관리자 코드 (테스트용): 맞으면 아드리안 관계 +5
+function admTry(){   // 관리자 코드 (테스트용): 맞으면 5000골드 추가
   if(admIn.value.trim()!=='0619'){beep(220,.15);admMsg.textContent='코드가 틀렸어.';admIn.value='';return;}
   admModal.classList.remove('show');try{admIn.blur();}catch(e){}
-  if(st.adrRel==null)st.adrRel=ADR_REL_START;st.adrSeen=true;st.adrRel=Math.min(REL_MAX,(st.adrRel|0)+5);saveGame();beep(1320,.08);setTimeout(()=>beep(1760,.1),90);toast('✦ 아드리안과의 관계가 5 올랐다!',1800);
+  st.gold=(st.gold|0)+5000;saveGame();beep(1320,.08);setTimeout(()=>beep(1760,.1),90);toast('✦ 5000골드를 받았다! (+5000G)',1800);
 }
 document.getElementById('admOk').onclick=admTry;
 admIn.addEventListener('keydown',e=>{if(e.key==='Enter')admTry();});
