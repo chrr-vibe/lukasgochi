@@ -1,6 +1,6 @@
 // 미니게임 코드(MG/MG2/MG3/MG4/MG5) — 미니게임 수정 작업이 아니면 열지 말 것
 const MG=(()=>{
-  const CFG={combo:10,timeLimit:40000,perfect:80,good:150,speed:50,holdRate:.28,gapMin:520,gapMax:1250};
+  const CFG={combo:10,timeLimit:40000,perfect:80,good:150,speed:50,holdRate:.28,gapMin:520,gapMax:1250,plSpeed:75,plGapMin:350,plGapMax:850};   // pl*: 플레로마(명성용) 테마일 때만 더 빠르고 촘촘하게
   const LINE_Y=ROOM_Y+74, LX={L:30,R:98};
   const r=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w|0,h|0);};
   const bmp=(rows,x,y,pal)=>rows.forEach((row,j)=>{for(let i=0;i<row.length;i++){const c=pal[row[i]];if(c){ctx.fillStyle=c;ctx.fillRect((x|0)+i,(y|0)+j,1,1);}}});
@@ -14,13 +14,13 @@ const MG=(()=>{
   const textC=(s,cx,y,col,k=1)=>text(s,Math.round(cx-((String(s).length*4-1)*k)/2),y,col,k);
   const stars=[...Array(46)].map((_,i)=>({x:Math.random()*W,y:Math.random()*ROOM_H,s:[8,16,30][i%3],c:['#6f7bd8','#c9d2ff','#ffffff','#ffd6f0','#9ff0ff'][i%5]}));
   let s=null;
-  function chart(){const n=[];let t=1400;while(t<CFG.timeLimit+3000){const lane=Math.random()<.5?'L':'R',hold=Math.random()<CFG.holdRate?450+Math.random()*650:0;
-    n.push({lane,t,hold,state:'wait'});t+=hold+CFG.gapMin+Math.random()*(CFG.gapMax-CFG.gapMin);}return n;}
+  function chart(pl){const gMin=pl?CFG.plGapMin:CFG.gapMin,gMax=pl?CFG.plGapMax:CFG.gapMax,n=[];let t=1400;while(t<CFG.timeLimit+3000){const lane=Math.random()<.5?'L':'R',hold=Math.random()<CFG.holdRate?450+Math.random()*650:0;
+    n.push({lane,t,hold,state:'wait'});t+=hold+gMin+Math.random()*(gMax-gMin);}return n;}
   const EXIT=['GGGGGGGGG','GGGGGGWWG','GGGWWWWWG','GGWGWWGGG','GGGGWWWGG','GGGWGGGWG','GGWGGGGWG','GWGGGGGGG','GGGGGGGGG'], EP={G:'#1fae5a',W:'#ffffff'};   // 비상구 픽토그램 (플레로마)
   const lamps=[14,64,114];
-  function start(onEnd,theme){s={t0:performance.now(),now:0,notes:chart(),combo:0,best:0,fx:[],pops:[],held:{L:false,R:false},flash:{L:0,R:0},phase:'play',endT:0,onEnd,theme:theme||''};
+  function start(onEnd,theme){s={t0:performance.now(),now:0,notes:chart(theme==='pleroma'),spd0:theme==='pleroma'?CFG.plSpeed:CFG.speed,combo:0,best:0,fx:[],pops:[],held:{L:false,R:false},flash:{L:0,R:0},phase:'play',endT:0,onEnd,theme:theme||''};
     beep(660,.08);setTimeout(()=>beep(990,.1),160);closeMenu();}
-  const spd=()=>CFG.speed*(1+Math.min(s.combo,10)*.03);
+  const spd=()=>s.spd0*(1+Math.min(s.combo,10)*.03);
   const yOf=t=>LINE_Y-(t-s.now)*spd()/1000;
   function pop(txt,lane,c){s.pops.push({txt,lane,c,t:s.now});}
   function burst(lane,k){for(let i=0;i<k;i++){const a=Math.random()*6.28,v=20+Math.random()*40;s.fx.push({x:LX[lane],y:LINE_Y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-10,t:s.now,c:lane==='L'?'#ff8fbf':'#c9a4ff'});}}
@@ -73,7 +73,7 @@ const MG=(()=>{
 // 플레로마 잡기 (명성 최대 + 니콜라우스): 갤러그식. 왼/오 완드 이동, 가운데 꾹 누르면 레이저(그 줄 전부 소멸). 1분 버티기, 하트 5개
 const MG3=(()=>{
   const {r,bmp,text,textC,HEART,HP,POISON,PP,EXIT,EP,lamps}=MG.kit;
-  const CFG={time:60000,lives:5,maxLives:5,wandSpd:78,laserW:6,stick:700,spawn0:380,spawn1:380,fall0:45,fall1:45};
+  const CFG={time:60000,lives:5,maxLives:5,wandSpd:78,laserW:6,stick:700,spawn0:1150,spawn1:520,fall0:16,fall1:30};
   const BOT=ROOM_Y+ROOM_H-10, WY=BOT-10;   // 하단선 / 완드 위치
   const WAND=['..Y..','.YWY.','..Y..','..B..','..B..','..B..','..B..'], WP={Y:'#ffe066',W:'#ffffff',B:'#8a5a2b'};
   const KIND=[['poison',5],['exit',4],['heart',1]], KIND_RUSH=[['poison',5],['exit',4],['heart',2]];   // 비중 5:4:1 / 피버타임: 하트 2배
