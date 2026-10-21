@@ -1014,7 +1014,7 @@ function menuItems(){
   if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='dish'||st.wear.gloves)&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
   if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()&&!((k==='academy'||k==='adorm')&&!ACAD_IN.includes(st.room))&&!(HOME_IN.includes(k)&&regionNow()==='home'&&!HOME_IN.includes(st.room))).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||((k==='academy'||k==='adorm')&&st.niko)?'🔒':''})),...(ACAD_IN.includes(st.room)||regionNow()!=='prussia'?[]:[{id:'acad',label:'아카데미 가기',tag:st.niko?'🔒':''}]),...(regionNow()==='home'&&!HOME_IN.includes(st.room)?[{id:'homego',label:'우리집 가기'}]:[]),{id:'map',label:'다른 지역'}];
   if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'quest',label:'퀘스트'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'},{id:'title',label:'타이틀'},{id:'admin',label:'관리자 코드'}];
-  if(st.menu==='title'){const T=ttlState(),ks=Object.keys(TITLES).filter(k=>T.own[k]);return [{id:'tOnOff',label:'타이틀 끄기/켜기',tag:T.on?'켜기':'끄기'},...(ks.length?ks.map(k=>({id:'tPick',key:k,label:TITLES[k],tag:T.cur===k?'선택중':''})):[{id:'none',label:'보유한 타이틀이 없어'}])];}
+  if(st.menu==='title'){const T=ttlState(),ks=Object.keys(TITLES);return [{id:'tOnOff',label:'타이틀 끄기/켜기',tag:T.on?'켜기':'끄기'},...ks.map(k=>T.own[k]?{id:'tPick',key:k,label:TITLES[k],tag:T.cur===k?'선택중':''}:{id:'tPick',key:k,label:TITLES[k],tag:'잠김',locked:true})];}   // 전체 목록 표시, 미보유는 잠김(선택 불가)
   if(st.menu==='rel') return [{id:'relback',label:'돌아가기'}];
   if(st.menu==='quest') return [{id:'dq',label:'일일 퀘스트'},{id:'qback',label:'돌아가기'}];
   if(st.menu==='dquest'){const q=dqActive();return [...(q?[{id:'qitem',label:q.name,tag:dqProg()}]:[{id:'none',label:st.dq&&st.dq.done?'오늘 퀘스트를 완료했어':'받은 퀘스트가 없어'}]),{id:'dqback',label:'돌아가기'}];}
@@ -1047,10 +1047,10 @@ function _renderMenu(){
   const title={choice:st.choice?st.choice.title:'잠입할까?',root:'무엇을 할까?',act:'행동하기',move:'어디로 갈까?',shop:'상점 · '+st.gold+'G',acc:'악세사리',title:'타이틀',quest:'퀘스트',dquest:'일일 퀘스트',item:(ITEMS[(st.inv||[])[st.invSel]]||{}).name,mail:'편지 관리',inbox:'받은 편지',letter:((st.inbox||[])[st.mailSel]||{}).from}[st.menu];
   menuEl.innerHTML=`<div class="ttl"><span>♥ ${title}</span><span>${PLACES[st.room]}</span></div>`+items.map((m,i)=>{
     const sec=st.menu==='title'&&i===1?'<div class="tsec">보유 타이틀</div>':'';
-    const off=!avail(m);
+    const off=!avail(m)||!!m.locked;
     let label=m.label; if((m.id==='sleep'||m.id==='lsleep')&&st.mode==='sleep') label='일어나기';
     if(m.id==='go') label=withRo(PLACES[m.to])+' 가기';
-    const tag=off?placeTag(m):m.id==='call'&&st.withLeo?'함께하는 중':(m.tag||'');
+    const tag=m.locked?m.tag:off?placeTag(m):m.id==='call'&&st.withLeo?'함께하는 중':(m.tag||'');
     return sec+`<div class="it ${i===st.cur?'sel':''} ${off?'off':''}"><span class="cur">▶</span>${label}${tag?`<span class="tag">${tag}</span>`:''}</div>`;
   }).join('');
   menuEl.style.display='block';
@@ -1121,7 +1121,7 @@ function doAction(m){
   if(st.menu==='rel'){st.menu='status';st.cur=1;renderMenu();beep(520,.06);return;}
   if(st.menu==='quest'){ if(m.id==='dq'){st.menu='dquest';st.cur=0;renderMenu();beep(990,.05);return;} st.menu='status';st.cur=2;renderMenu();beep(520,.06);return; }
   if(st.menu==='dquest'){ if(m.id==='dqback'){st.menu='quest';st.cur=0;renderMenu();beep(520,.06);return;} beep(660,.04);return; }   // 퀘스트 항목은 보기만 (수락/파기 없음)
-  if(st.menu==='title'){const T=ttlState(); if(m.id==='tOnOff'){T.on=!T.on;saveGame();renderMenu();beep(T.on?1320:660,.06);return;} if(m.id==='tPick'){T.cur=m.key;T.on=true;saveGame();renderMenu();beep(1320,.06);return;} beep(660,.04);return; }
+  if(st.menu==='title'){const T=ttlState(); if(m.id==='tOnOff'){T.on=!T.on;saveGame();renderMenu();beep(T.on?1320:660,.06);return;} if(m.id==='tPick'){if(!T.own[m.key]){beep(220,.15,'square',.05);toast('아직 해금하지 못한 타이틀이야.');return;}T.cur=m.key;T.on=true;saveGame();renderMenu();beep(1320,.06);return;} beep(660,.04);return; }
   if(st.menu==='status'){ if(m.id==='me'){beep(660,.04);return;} if(m.id==='admin'){closeMenu();beep(990,.05);admOpen();return;} return openSub(m.id); }
   if(st.menu==='inv'){ if(!(st.inv||[])[m.i]){beep(330,.05);return;} st.invSel=m.i; return openSub('item'); }
   if(st.menu==='item'){ return useItem(m.id); }
