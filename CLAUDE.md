@@ -12,10 +12,11 @@
 - 대사 추가/수정: index.html (아래 "대사 추가/수정 규칙" 따라 해당 const만 읽고 수정)
 - 기존 그림을 같은 키로 교체: sprites.js만 (grep으로 해당 키 줄만 확인, 전체 읽기 금지)
 - 새 그림 추가 / 그림 크기 변경: sprites.js + index.html
-- 배경 수정: backgrounds.js + index.html
-- 미니게임 수정: minigames.js + index.html
+- 기존 배경 그림·색·가구 수정: backgrounds.js만 (새 방 추가 시에만 index.html도)
+- 기존 미니게임 난이도·속도·판정·화면 수정: minigames.js만 (결과·보상·대사 로직이나 새 미니게임 추가 시에만 index.html도)
 - 배포 시: sw.js (VERSION 올리기, 새 파일은 CORE에 추가)
 - 위에 해당하지 않는 파일은 열지 말 것.
+- "~만"이라고 적힌 작업은 해당 파일만 고치고 index.html은 열지 말 것. 다른 파일 수정이 필요해 보이면 임의로 고치지 말고 먼저 사용자에게 알릴 것.
 
 ## 대사 추가/수정 규칙
 - 대사 작업은 index.html 전체를 읽지 말고, 사용자가 말한 상수 이름(예: ELI_BUDDY, LEO, MEC_LINES)을 `grep -n '^const 상수명' index.html`로 찾아 그 선언문만 읽고 수정할 것.
@@ -24,7 +25,7 @@
 - 배열 구조가 바뀌거나 대사를 보여주는 로직 수정이 필요해 보이면 임의로 고치지 말고 먼저 사용자에게 알릴 것.
 - 상수 이름을 말해주지 않았으면, 대사 내용으로 grep해서 위치를 찾고 어느 상수에 넣을지 한 줄로 확인할 것.
 - 함수 안에 직접 박힌 대사(상수가 아닌 것)는 사용자가 알려준 문장 내용으로 grep해서 그 줄 근처만 읽고 수정할 것.
-  
+
 ## 파일 구조
 - `index.html`: 게임 전체 (코드·스타일·화면). 수정은 대부분 여기서.
 - `sprites.js`: base64 스프라이트 데이터(`const SPR = {...}`, `SPR.xxx = "data:image/png;base64,..."`). 약 1.6MB — **새 그림을 넣거나 바꿀 때만 열 것.** 평소엔 읽지 말고 `grep -o '^SPR\.[A-Za-z.]*' sprites.js` 정도로 키 이름만 확인.
