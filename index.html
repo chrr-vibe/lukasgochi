@@ -480,7 +480,7 @@ function drawEars(c,t){
   drawEar(c,73,42,-.38-droop,1,-tw);
   drawEar(c,123,44,.42+droop,-1,-tw);
 }
-const TITLES={drunk:'주정뱅이',rake:'난봉꾼'};   // 타이틀: drunk 만취 3회 달성 · rake 만취 3회 상태로 꽃 주기 (업데이트 이후 달성분만)
+const TITLES={drunk:'주정뱅이',rake:'Lustmolch'};   // 타이틀: drunk 만취 3회 달성 · rake 만취 3회 상태로 꽃 주기 (업데이트 이후 달성분만)
 function ttlState(){if(!st.ttl||typeof st.ttl!=='object')st.ttl={own:{},on:true,cur:''};if(!st.ttl.own)st.ttl.own={};return st.ttl;}
 function ttlUnlock(k){const T=ttlState();if(T.own[k])return;T.own[k]=true;if(!T.cur)T.cur=k;saveGame();unlockNotice('타이틀 <'+TITLES[k]+'> 해금! (상태보기)');}
 function dkMark(k){   // 취권 해금 조건 5개: a 만취 3회 달성 · l 3회 상태로 레오나르드 · e 엘리아스 · f 밥 먹기 시도 · s 잠자기로 해소
