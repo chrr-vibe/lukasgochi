@@ -73,7 +73,7 @@ const MG=(()=>{
 // 플레로마 잡기 (명성 최대 + 니콜라우스): 갤러그식. 왼/오 완드 이동, 가운데 꾹 누르면 레이저(그 줄 전부 소멸). 1분 버티기, 하트 5개
 const MG3=(()=>{
   const {r,bmp,text,textC,HEART,HP,POISON,PP,EXIT,EP,lamps}=MG.kit;
-  const CFG={time:60000,lives:5,maxLives:5,wandSpd:78,laserW:6,stick:700,spawn0:850,spawn1:380,fall0:24,fall1:45};
+  const CFG={time:60000,lives:5,maxLives:5,wandSpd:78,laserW:6,stick:700,spawn0:380,spawn1:380,fall0:45,fall1:45};
   const BOT=ROOM_Y+ROOM_H-10, WY=BOT-10;   // 하단선 / 완드 위치
   const WAND=['..Y..','.YWY.','..Y..','..B..','..B..','..B..','..B..'], WP={Y:'#ffe066',W:'#ffffff',B:'#8a5a2b'};
   const KIND=[['poison',5],['exit',4],['heart',1]], KIND_RUSH=[['poison',5],['exit',4],['heart',2]];   // 비중 5:4:1 / 피버타임: 하트 2배
