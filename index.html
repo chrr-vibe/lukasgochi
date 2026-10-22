@@ -1237,7 +1237,7 @@ function doAction(m){
     const worst=pl3&&hu<=0&&he<=0, weak=pl3&&!worst&&(hu<=.5||he<=.5), fever=worst?15000:weak?10000:5000;
     const pre=[['✦ 골목에서 플레로마를 발견했다!','']];
     if(worst)pre.push(['✦ 니콜라우스의 건강 상태가 최악이라 난이도가 솟았다.','']);else if(weak)pre.push(['✦ 니콜라우스의 건강 상태가 좋지 않아 난이도가 올라갔다.','']);
-    if(Math.random()<PL_CHANCE){setMode('leo');st.script={i:0,lines:pre,after:()=>{hideDlg();if(pl3){setMode('mg3');MG3.start(pl3End,fever);}else{setMode('mg');MG.start(plEnd,'pleroma');}}};say(...st.script.lines[0]);}
+    if(Math.random()<PL_CHANCE){setMode('leo');st.script={i:0,lines:pre,after:()=>{hideDlg();if(pl3){setMode('mg3');MG3.start(pl3End,fever);}else{setMode('mg');MG.start(plEnd,'pleroma',st.niko);}}};say(...st.script.lines[0]);}
     else{setMode('talk');say(['아무 것도 찾지 못했다.','조용한 거리다.','낡은 포스터가 바람에 펄럭인다.'][Math.random()*3|0],'');}
     return;}
   if(m.id==='think'&&st.room==='aliving'){setMode('talk');say('얼굴이 따갑다... 날 싫어하는 티 좀 그만 내라.','루카스');return;}   // 왕세자 방: 레오나르드가 안경 쓰고 읽어줌 (루카스는 지금 옷 그대로)
@@ -1366,13 +1366,13 @@ function duelEnd(score){   // 기억 결투 결과
 }
 function plEnd(ok){   // 플레로마 잡기 결과 (5번 소탕하면 니콜라우스 방 해금)
   setMode('leo');
-  if(ok){const was=st.plClear|0;st.plClear=was+1;if(st.niko){const T=ttlState();T.pc=(T.pc|0)+1;if(T.pc>=10)ttlUnlock('christ');}if(!st.niko&&st.room==='street')dqEvent('pl');
+  if(ok){const was=st.plClear|0;st.plClear=was+1;let rev='';if(st.niko){const T=ttlState();T.pc=(T.pc|0)+1;if(T.pc<=10)rev='✦ 계시 ('+T.pc+'/10)';if(T.pc>=10)ttlUnlock('christ');}if(!st.niko&&st.room==='street')dqEvent('pl');
     let fame;
     if(was<PL_UNLOCK) fame='✦ 명성이 올라갔다. ('+st.plClear+'/'+PL_UNLOCK+')';   // 해금 전: 5번까지 숫자 표시
     else if(st.niko){st.fame=Math.min(FAME_MAX,(st.fame|0)+1);st.fameT=Date.now();fame='✦ 명성이 올라갔다.';
       if(st.fame>=FAME_MAX&&!st.letterOk){st.letterOk=true;setTimeout(()=>unlockNotice('편지 관리 해금! (니콜라우스 방)'),5200);setTimeout(()=>fbCheckMail(true),6000);}}   // 해금 후: 니콜라우스로 소탕해야 명성 +1
     saveGame();
-    st.script={i:0,lines:fame?[['✦ 플레로마를 소탕했다.',''],[fame,'']]:[['✦ 플레로마를 소탕했다.','']],after:()=>{setMode('idle');if(was<PL_UNLOCK&&st.plClear>=PL_UNLOCK)unlockNotice('니콜라우스 방 해금! (바이에른 궁)');}};}
+    st.script={i:0,lines:[['✦ 플레로마를 소탕했다.',''],...(fame?[[fame,'']]:[]),...(rev?[[rev,'']]:[])],after:()=>{setMode('idle');if(was<PL_UNLOCK&&st.plClear>=PL_UNLOCK)unlockNotice('니콜라우스 방 해금! (바이에른 궁)');}};}
   else if(st.niko&&(st.plClear|0)>=PL_UNLOCK&&(st.fame|0)>0){st.fame=Math.max(0,(st.fame|0)-2);st.fameT=Date.now();saveGame();   // 니콜라우스로 실패: 명성 2칸 하락
     st.script={i:0,lines:[['✦ 플레로마가 달아났다...',''],['✦ 명성이 떨어졌다.','']],after:()=>setMode('idle')};}
   else st.script={i:0,lines:[['✦ 플레로마가 달아났다...','']],after:()=>setMode('idle')};
@@ -1503,6 +1503,7 @@ function btnB(){
 function btnC(){
   if(st.dead) return;
   if(st.map){mapSelect();return;}
+  if(st.mode==='mg'){MG.press('M');return;}   // 니콜라우스 플레로마: 가운데 레인
   if(st.mode==='mg3'){MG3.fire();return;}
   if(st.mode==='mg4'){MG4.submit();return;}
   if(st.mode==='mg5'){MG5.submit();return;}
@@ -1513,10 +1514,10 @@ function btnC(){
 }
 function bind(id,fn){const el=document.getElementById(id), lane={bA:'L',bC:'R'}[id];
   el.addEventListener('pointerdown',e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(_){}el.classList.add('down');fn();});
-  ['pointerup','pointerleave','pointercancel'].forEach(ev=>el.addEventListener(ev,()=>{el.classList.remove('down');if(lane&&ev!=='pointerleave'){MG.release(lane);MG3.move(lane,false);}if(id==='bB'&&ev!=='pointerleave')MG3.fire(false);}));
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>el.addEventListener(ev,()=>{el.classList.remove('down');if(lane&&ev!=='pointerleave'){MG.release(lane);MG3.move(lane,false);}if(id==='bB'&&ev!=='pointerleave'){MG.release('M');MG3.fire(false);}}));
   el.addEventListener('contextmenu',e=>e.preventDefault());}
 bind('bA',btnA);bind('bB',btnC);bind('bC',btnB);
-document.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='a'||k==='arrowleft'){MG.release('L');MG3.move('L',false);}if(k==='d'||k==='arrowdown'){MG.release('R');MG3.move('R',false);}if(k==='s'||k==='enter'||k==='arrowright')MG3.fire(false);});
+document.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='a'||k==='arrowleft'){MG.release('L');MG3.move('L',false);}if(k==='d'||k==='arrowdown'){MG.release('R');MG3.move('R',false);}if(k==='s'||k==='enter'||k==='arrowright'){MG.release('M');MG3.fire(false);}});
 document.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('input,textarea,select'))return;   // 입력창에 글 쓸 땐 게임 버튼 X
   const k=e.key.toLowerCase(); if(e.repeat&&(st.mode==='mg'||st.mode==='mg3'||st.mode==='mg4'||st.mode==='mg5'))return;
   if(k==='a'||k==='arrowleft')btnA(); if(k==='d'||k==='arrowdown')btnB(); if(k==='s'||k==='enter'||k==='arrowright')btnC();});
