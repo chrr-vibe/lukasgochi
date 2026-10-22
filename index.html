@@ -306,6 +306,7 @@ const ACTS=[
   {id:'pbook',label:'책 읽기',        room:'prince'},
   {id:'pnews',label:'신문 읽기',      room:'prince'},
   {id:'browse',label:'구경하기',      room:'market'},   // 상점가: 상점 목록
+  {id:'bet',  label:'내기하기',       room:'market'},   // 상점가: 밤에만, 현실 하루 한 번 (숫자 맞히기)
   {id:'cook', label:'요리하기',       room:'kitchen'},
   {id:'dish', label:'설거지',         room:'kitchen'},   // 고무장갑 착용 시에만
   {id:'taste',label:'시식하기',       room:'kitchen'},
@@ -963,6 +964,7 @@ function frame(now){
   if(MG3.active()){MG3.update(t);MG3.draw();}
   if(MG4.active()){MG4.update(t);MG4.draw();}
   if(MG5.active()){MG5.update(t);MG5.draw();}
+  if(MG6.active()) MG6.draw(t);
   if(MG2.active()) MG2.draw(t);
   if(st.map) drawMap(t);
   drawMailIcon(t);
@@ -1011,7 +1013,7 @@ function relHTML(){   // 관계도: 지금은 레오나르드, 아드리안 방�
 function menuItems(){
   if(st.menu==='choice') return st.choice?st.choice.opts.map(([id,label])=>({id,label})):[{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
-  if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='dish'||st.wear.gloves)&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m);   // 지금 장소에서 할 수 있는 행동만
+  if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='dish'||st.wear.gloves)&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m.id==='bet'&&!isNight()?{...m,tag:'🔒 밤에만'}:m);   // 지금 장소에서 할 수 있는 행동만
   if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()&&!((k==='academy'||k==='adorm')&&!ACAD_IN.includes(st.room))&&!(HOME_IN.includes(k)&&regionNow()==='home'&&!HOME_IN.includes(st.room))).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||((k==='academy'||k==='adorm')&&st.niko)?'🔒':''})),...(ACAD_IN.includes(st.room)||regionNow()!=='prussia'?[]:[{id:'acad',label:'아카데미 가기',tag:st.niko?'🔒':''}]),...(regionNow()==='home'&&!HOME_IN.includes(st.room)?[{id:'homego',label:'우리집 가기'}]:[]),{id:'map',label:'다른 지역'}];
   if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'quest',label:'퀘스트'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'},{id:'title',label:'타이틀'},{id:'admin',label:'관리자 코드'}];
   if(st.menu==='title'){const T=ttlState(),ks=Object.keys(TITLES);return [{id:'tOnOff',label:'타이틀 끄기/켜기',tag:T.on?'켜기':'끄기'},...ks.map(k=>T.own[k]?{id:'tPick',key:k,label:TITLES[k],tag:T.cur===k?'선택중':''}:{id:'tPick',key:k,label:TITLES[k],tag:'잠김',locked:true})];}   // 전체 목록 표시, 미보유는 잠김(선택 불가)
@@ -1169,6 +1171,10 @@ function doAction(m){
   if(m.id==='sleep'&&inRoom(m)&&st.niko&&st.mode!=='sleep'){beep(220,.15);toast('변장 중엔 잘 수 없어.');return;}
   if(m.id==='mail'&&inRoom(m)&&st.letterOk){openSub('mail');return;}
   if(m.id==='browse'&&inRoom(m)){openSub('shop');return;}   // 상점가: 구경하기
+  if(m.id==='bet'&&inRoom(m)){   // 상점가: 내기하기
+    if(!isNight()){beep(220,.15);toast('내기는 밤에만 할 수 있어.');return;}
+    if(betDone()){beep(220,.15);toast('오늘은 이미 내기를 했어. 내일 다시 오자.');return;}
+    closeMenu();beep(1320,.08);betStart();return;}
   if(m.id==='gleo'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 만날 수 있어.');return;}
   if(m.id==='call'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 부를 수 있어.');return;}
   if(!avail(m)){beep(220,.15,'square',.05);toast(placeTag(m)+'에서만 할 수 있어.');return;}
@@ -1318,6 +1324,28 @@ function shellTopEnd(ok){   // 야바위 최고 난이도: 맞히면 +3000G, 틀
   if(ok)st.gold+=3000; else st.gold=Math.max(0,st.gold-2000); saveGame();
   setMode('leo');
   st.script={i:0,lines:ok?[['✦ 최고 난이도도 맞혔다! (+3000G)',''],['부자가 됐다.','루카스']]:[['✦ 2000G를 잃었다...',''],['분명 속임수가 있다.','루카스']],after:()=>setMode('idle')};say(...st.script.lines[0]);
+}
+function betToday(){   // 내기하기: 현실 날짜 (마지막 도전일은 SAVE_KEY+':bet')
+  const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function betDone(){try{return localStorage.getItem(SAVE_KEY+':bet')===betToday();}catch(e){return false;}}
+function betStart(){
+  try{localStorage.setItem(SAVE_KEY+':bet',betToday());}catch(e){}
+  MG6.start();setMode('leo');
+  st.script={i:0,lines:[['✦ 으슥한 천막 안, 수정구슬이 희미하게 빛난다.',''],['✦ 1부터 50 사이의 숫자 하나를 맞혀라. 기회는 7번.',''],['✦ 내기는 현실 시간으로 하루에 한 번만 할 수 있다.','']],after:betAsk};
+  say(...st.script.lines[0]);
+}
+function betAsk(){
+  hideDlg();setMode('mg6');
+  st.choice={title:MG6.title(),opts:MG6.opts(),pick:id=>{const r=MG6.pick(id);if(r.state==='go')betAsk();else betEnd(r);}};
+  st.menu='choice';st.cur=0;renderMenu();
+}
+function betEnd(r){   // 내기 결과: 3번 만에 +5000G, 5번 안에 +3000G, 7번 안에 +2000G, 못 맞히면 정답 공개 (패널티 없음)
+  const win=r.state==='win', g=!win?0:r.used<=3?5000:r.used<=5?3000:2000;
+  if(win){st.gold+=g;saveGame();[1320,1760,2090].forEach((f,i)=>setTimeout(()=>beep(f,.1,'square',.05),i*110));} else beep(200,.25,'sawtooth',.05);
+  setMode('leo');
+  st.script={i:0,lines:win?[['✦ 정답은 '+r.ans+'! '+r.used+'번 만에 맞혔다! (+'+g+'G)',''],['수정구슬도 별거 아니군.','루카스']]:[['✦ 기회를 모두 썼다... 정답은 '+r.ans+'.',''],['…다음엔 맞힌다.','루카스']],
+    after:()=>{MG6.stop();setMode('idle');}};
+  say(...st.script.lines[0]);
 }
 function duelEnd(score){   // 기억 결투 결과
   if(score>=5)dqEvent('duel');
