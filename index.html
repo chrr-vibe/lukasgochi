@@ -258,6 +258,7 @@ function load(k,src){total++;const im=new Image();im.onload=()=>loaded++;im.src=
 load('bang',SPR.bang); load('tail',SPR.tail); load('leo',SPR.leo); load('glasses',SPR.glasses); load('drunk',SPR.drunk); load('eli',SPR.eli); load('monocle',SPR.monocle); load('heart',SPR.heart); load('leoHome',SPR.leoHome); load('leoGlasses',SPR.leoGlasses); load('niko',SPR.niko); load('julia',SPR.julia); load('leoAcad',SPR.leoAcad); load('juliaAcad',SPR.juliaAcad); load('juliaLockL',SPR.juliaLockL); load('juliaLockR',SPR.juliaLockR); load('nikoBang',SPR.nikoBang); load('nikoMask',SPR.nikoMask); load('leoBook',SPR.leoBook); load('adr',SPR.adr); load('broHead',SPR.broHead); for(const k of ['heart','broHead','leoHome','adr']) load(k+'Bang',SPR[k+'Bang']); load('jerome',SPR.jerome); load('jeromeBang',SPR.jeromeBang); load('onesie',SPR.onesie); load('mask',SPR.mask); load('gloves',SPR.gloves); if(SPR.eras){load('eras',SPR.eras); if(SPR.erasBang) load('erasBang',SPR.erasBang);}
 for(const k of ['meck','meckLockL','meckLockR']) if(SPR[k]) load(k,SPR[k]);   // 메클렌부르크 (옆머리 갈기 흔들림)
 if(SPR.blush) load('blush',SPR.blush);   // 취권 블러셔
+if(SPR.flowerPin) load('flowerPin',SPR.flowerPin);   // 꽃 핀 (루카스·애인 공용 오버레이)
 if(SPR.readNews) load('readNews',SPR.readNews);   // 루카스 신문 읽기: 신문만 (옷 위에 얹음)
 for(const k of ['lover','loverLockL','loverLockR','loverSleep','loverSleepLockL','loverSleepLockR']) if(SPR[k]) load(k,SPR[k]);   // 동료의 집: 애인 (깨어 있을 때 / 같이 잘 때)
 for(const o in SPR.outfits) for(const k in SPR.outfits[o]) load(o+':'+k,SPR.outfits[o][k]);
@@ -317,6 +318,7 @@ const ACTS=[
   {id:'leat', label:'밥 먹기',        room:'lhouse'},
   {id:'lsleep',label:'같이 잠 자기',  room:'lhouse'},
   {id:'lgame',label:'게임하기',      room:'lhouse'},    // 동료의 집: 이심전심 (애인과)
+  {id:'lgroom',label:'단장하기',     room:'lhouse'},    // 동료의 집: 애인이 꽃 핀을 하고 있을 때만 → 꽃 핀이 소지품으로
 ];
 /* ---- 소지품 (4x3 = 12칸, 같은 아이템도 칸을 따로 차지) ---- */
 const INV_MAX=12;
@@ -328,7 +330,7 @@ function drawBitmap(c,rows,pal,x,y,k=1,ol='#5a2a3a'){   // 바깥 테두리를 �
   c.fillStyle=ol;for(let j=-1;j<=rows.length;j++)for(let i=-1;i<=rows[0].length;i++)if(!on(i,j)&&(on(i-1,j)||on(i+1,j)||on(i,j-1)||on(i,j+1)))c.fillRect(x+i*k,y+j*k,k,k);
   rows.forEach((r,j)=>{for(let i=0;i<r.length;i++)if(pal[r[i]]){c.fillStyle=pal[r[i]];c.fillRect(x+i*k,y+j*k,k,k);}});
 }
-const ITEMS={flower:{name:'꽃',icon:SPR.flower||''},partifact:{name:'분홍색 아티팩트',icon:(()=>{const c=document.createElement('canvas');c.width=18;c.height=16;const x=c.getContext('2d');x.fillStyle='#5a2a4a';x.beginPath();x.arc(9,8,6,0,7);x.fill();x.fillStyle='#e0569a';x.beginPath();x.arc(9,8,5,0,7);x.fill();x.fillStyle='#ffb3d6';x.beginPath();x.arc(9,8,3.4,0,7);x.fill();x.fillStyle='#fff';x.fillRect(6,5,2,2);return c.toDataURL();})()},
+const ITEMS={flower:{name:'꽃',icon:SPR.flower||''},fpin:{name:'꽃 핀',icon:SPR.flowerPinIcon||''},partifact:{name:'분홍색 아티팩트',icon:(()=>{const c=document.createElement('canvas');c.width=18;c.height=16;const x=c.getContext('2d');x.fillStyle='#5a2a4a';x.beginPath();x.arc(9,8,6,0,7);x.fill();x.fillStyle='#e0569a';x.beginPath();x.arc(9,8,5,0,7);x.fill();x.fillStyle='#ffb3d6';x.beginPath();x.arc(9,8,3.4,0,7);x.fill();x.fillStyle='#fff';x.fillRect(6,5,2,2);return c.toDataURL();})()},
   cake:{name:'생일 케이크',icon:(()=>{const c=document.createElement('canvas');c.width=18;c.height=16;drawBitmap(c.getContext('2d'),CAKE,CAKE_PAL,1,1);return c.toDataURL();})()}};
 function invAdd(k){st.inv=st.inv||[];if(st.inv.length>=INV_MAX)return false;st.inv.push(k);saveGame();return true;}
 const ROOT=[
@@ -637,6 +639,7 @@ function drawLucas(t,x){
   if(key==='niko' && st.wear.mask) octx.drawImage(imgs.nikoMask,0,0);   // 니콜라우스는 마스크만 착용 가능   // 먹을 땐 벗음
   swayBang(octx, key==='niko'?imgs.nikoBang:key==='heart'?imgs.heartBang:key==='broLuc'?imgs.broHeadBang:key==='jerome'?imgs.jeromeBang:bang, bangAmp(t,st.mode==='sleep'));
   if(!disguise && st.wear.artifact) drawArtifact(octx);
+  if(!disguise && st.wear.fpin && imgs.flowerPin) octx.drawImage(imgs.flowerPin,0,0);   // 꽃 핀
   if(!disguise && st.wear.blush && imgs.blush) octx.drawImage(imgs.blush,0,0);   // 취권: 술 취했을 때의 분홍 볼
   if(!disguise && st.wear.berry) drawBerry(octx);
   if(!disguise && st.wear.eyemask) drawEyeMask(octx);
@@ -672,6 +675,7 @@ function drawLover(x,t){   // 동료의 집: 늘 있는 애인 (책·신문은 �
   const sl=st.mode==='sleep', who=sl&&imgs.loverSleep.naturalWidth?'loverSleep':'lover';
   if(!imgs[who].naturalWidth) return;
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure(who,t),Math.round(x),CHY,CH,CH);
+  if(st.loverPin&&imgs.flowerPin&&imgs.flowerPin.naturalWidth) ctx.drawImage(imgs.flowerPin,Math.round(x),CHY,CH,CH);   // 루카스가 준 꽃 핀 (잘 때도)
   if((st.poison|0)>0&&!sl) fxLoverTears(Math.round(x),t);   // 독약 1~3스택: 눈물 (스택이 사라지면 평소대로)
   if(st.mode==='lbook'||st.mode==='lnews') drawLeoReading(x,st.mode==='lnews'?'news':'book',true);   // 원래 안경을 쓰고 있어서 레오나르드 안경은 빼고 책·신문만
 }
@@ -1013,7 +1017,7 @@ function relHTML(){   // 관계도: 지금은 레오나르드, 아드리안 방�
 function menuItems(){
   if(st.menu==='choice') return st.choice?st.choice.opts.map(([id,label])=>({id,label})):[{id:'yes',label:'좋아'},{id:'no',label:'싫어'}];
   if(st.menu==='root') return ROOT;
-  if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='dish'||st.wear.gloves)&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m.id==='bet'&&!isNight()?{...m,tag:'🔒 밤에만'}:m);   // 지금 장소에서 할 수 있는 행동만
+  if(st.menu==='act')  return ACTS.filter(m=>inRoom(m)&&(m.id!=='heal'||healable())&&(m.id!=='dish'||st.wear.gloves)&&(m.id!=='mail'||st.letterOk)).map(m=>m.id==='disguise'&&st.niko?{...m,label:'변장 풀기'}:m.id==='bet'&&!isNight()?{...m,tag:'🔒 밤에만'}:m.id==='lgroom'&&!st.loverPin?{...m,locked:true}:m);   // 지금 장소에서 할 수 있는 행동만
   if(st.menu==='move') return [...Object.keys(PLACES).filter(k=>k!==st.room&&!HIDDEN_PLACES.includes(k)&&REGION_OF[k]===regionNow()&&!((k==='academy'||k==='adorm')&&!ACAD_IN.includes(st.room))&&!(HOME_IN.includes(k)&&regionNow()==='home'&&!HOME_IN.includes(st.room))).map(k=>({id:'go',to:k,tag:(k==='lhouse'&&!st.loverOk)||((k==='academy'||k==='adorm')&&st.niko)?'🔒':''})),...(ACAD_IN.includes(st.room)||regionNow()!=='prussia'?[]:[{id:'acad',label:'아카데미 가기',tag:st.niko?'🔒':''}]),...(regionNow()==='home'&&!HOME_IN.includes(st.room)?[{id:'homego',label:'우리집 가기'}]:[]),{id:'map',label:'다른 지역'}];
   if(st.menu==='status') return [{id:'me',label:'루카스 아스카니엔'},{id:'rel',label:'관계도'},{id:'quest',label:'퀘스트'},{id:'acc',label:'악세사리'},{id:'inv',label:'소지품'},{id:'title',label:'타이틀'},{id:'admin',label:'관리자 코드'}];
   if(st.menu==='title'){const T=ttlState(),ks=Object.keys(TITLES);return [{id:'tOnOff',label:'타이틀 끄기/켜기',tag:T.on?'켜기':'끄기'},...ks.map(k=>T.own[k]?{id:'tPick',key:k,label:TITLES[k],tag:T.cur===k?'선택중':''}:{id:'tPick',key:k,label:TITLES[k],tag:'잠김',locked:true})];}   // 전체 목록 표시, 미보유는 잠김(선택 불가)
@@ -1025,7 +1029,7 @@ function menuItems(){
   if(st.menu==='mail') return [{id:'mInbox',label:'받은 편지',tag:hasUnread()?'NEW':''},{id:'mWrite',label:'편지 쓰기'},{id:'mAdd',label:'친구 추가'},{id:'mMe',label:'내 코드·이름'}];
   if(st.menu==='inbox'){const ib=st.inbox||[];return ib.length?ib.map((x,i)=>({id:'mLetter',i,label:x.from,tag:x.read?'':'●'})).reverse():[{id:'none',label:'받은 편지가 없어'}];}
   if(st.menu==='letter') return [{id:'mRead',label:'읽기'},{id:'mDrop',label:'버리기'}];
-  if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:x.item?(x.multi?x.price+'G':st.leoArtifact?'선물함':(st.inv||[]).includes(x.key)?'보유중':x.price+'G'):st.owned[x.key]?'보유중':(x.lock&&x.lock())?(x.key==='blush'?'잠김 '+['a','l','e','f','s'].filter(q=>(st.dk||{})[q]).length+'/5':'잠김'):x.price+'G'}));
+  if(st.menu==='shop') return SHOP.map(x=>({id:'buy',key:x.key,label:x.name,tag:x.item?(x.multi?x.price+'G':x.key==='fpin'?(st.loverPin?'선물함':(st.owned.fpin||(st.inv||[]).includes('fpin'))?'보유중':x.price+'G'):st.leoArtifact?'선물함':(st.inv||[]).includes(x.key)?'보유중':x.price+'G'):st.owned[x.key]?'보유중':(x.lock&&x.lock())?(x.key==='blush'?'잠김 '+['a','l','e','f','s'].filter(q=>(st.dk||{})[q]).length+'/5':'잠김'):x.price+'G'}));
   if(st.menu==='acc'){const ks=Object.keys(st.owned).filter(k=>st.owned[k]); return ks.length?ks.map(k=>({id:'wear',key:k,label:SHOP.find(x=>x.key===k).name,tag:st.niko&&k!=='mask'?'변장 중':st.wear[k]?'착용중':'해제'})):[{id:'none',label:'가진 악세사리가 없어'}];}
   return [];
 }
@@ -1086,7 +1090,7 @@ function setMode(m){
   if(st.menu) renderMenu();
 }
 function closeMenu(){st.menu=null;renderMenu();}
-const SHOP=[{key:'partifact',name:'분홍색 아티팩트',price:20000,item:true},{key:'flower',name:'꽃',price:5000,item:true,multi:true},{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk},{key:'artifact',name:'아티팩트',price:0,lock:()=>!st.artifactOk},{key:'mask',name:'마스크',price:0,lock:()=>!st.maskOk},{key:'berry',name:'딸기 장식',price:0,lock:()=>!st.berryOk},{key:'bday',name:'생일 꼬깔',price:0,lock:()=>!st.bdayOk},{key:'eyemask',name:'수면 안대',price:0,lock:()=>!st.eyemaskOk},{key:'blush',name:'취권',price:0,lock:()=>!st.blushOk}];
+const SHOP=[{key:'partifact',name:'분홍색 아티팩트',price:20000,item:true},{key:'flower',name:'꽃',price:5000,item:true,multi:true},{key:'fpin',name:'꽃 핀',price:15000,item:true},{key:'tail',name:'고양이 꼬리',price:1000},{key:'ears',name:'고양이 귀',price:1000},{key:'monocle',name:'외눈 안경',price:1500},{key:'chef',name:'요리사 모자',price:0,lock:()=>!st.chefOk},{key:'gloves',name:'고무장갑',price:0,lock:()=>!st.glovesOk},{key:'bunny',name:'토끼 잠옷',price:0,lock:()=>!st.bunnyOk},{key:'artifact',name:'아티팩트',price:0,lock:()=>!st.artifactOk},{key:'mask',name:'마스크',price:0,lock:()=>!st.maskOk},{key:'berry',name:'딸기 장식',price:0,lock:()=>!st.berryOk},{key:'bday',name:'생일 꼬깔',price:0,lock:()=>!st.bdayOk},{key:'eyemask',name:'수면 안대',price:0,lock:()=>!st.eyemaskOk},{key:'blush',name:'취권',price:0,lock:()=>!st.blushOk}];
 function openSub(name){st.menu=name;st.cur=0;renderMenu();beep(990,.05);}
 function doAction(m){
   if(st.menu==='choice'&&st.choice){const c=st.choice;st.choice=null;closeMenu();beep(1320,.08);c.pick(m.id);return;}
@@ -1140,7 +1144,8 @@ function doAction(m){
   if(m.id==='buy'){
     const it=SHOP.find(x=>x.key===m.key);
     if(it.item){   // 소지품으로 들어가는 물건 (분홍색 아티팩트: 악세사리 아님)
-      if(!it.multi&&(st.leoArtifact||(st.inv||[]).includes(it.key))){beep(330,.08);toast('이미 가지고 있어.');return;}
+      if(it.key==='fpin'&&(st.loverPin||st.owned.fpin||(st.inv||[]).includes('fpin'))){beep(330,.08);toast('이미 가지고 있어.');return;}   // 꽃 핀: 하나뿐 (소지품·악세사리·애인)
+      if(it.key!=='fpin'&&!it.multi&&(st.leoArtifact||(st.inv||[]).includes(it.key))){beep(330,.08);toast('이미 가지고 있어.');return;}
       if(st.gold<it.price){beep(220,.15);toast('골드가 부족해. ('+st.gold+'/'+it.price+'G)');return;}
       if(!invAdd(it.key)){beep(220,.15);toast('소지품이 가득 찼어.');return;}
       st.gold-=it.price;saveGame();renderMenu();beep(1320,.08);setTimeout(()=>beep(1760,.1),90);toast('✦ '+it.name+'을(를) 샀다! (소지품)');return;}
@@ -1236,6 +1241,12 @@ function doAction(m){
     else{setMode('talk');say(['아무 것도 찾지 못했다.','조용한 거리다.','낡은 포스터가 바람에 펄럭인다.'][Math.random()*3|0],'');}
     return;}
   if(m.id==='think'&&st.room==='aliving'){setMode('talk');say('얼굴이 따갑다... 날 싫어하는 티 좀 그만 내라.','루카스');return;}   // 왕세자 방: 레오나르드가 안경 쓰고 읽어줌 (루카스는 지금 옷 그대로)
+  if(m.id==='lgroom'){   // 동료의 집: 단장하기 (애인의 꽃 핀을 돌려받음)
+    if(!st.loverPin){beep(220,.15,'square',.05);return;}
+    if(!invAdd('fpin')){beep(220,.15);toast('소지품이 가득 찼어.');return;}
+    st.loverPin=false;saveGame();closeMenu();beep(1320,.08);setMode('leo');
+    const ln=[['머리 다시 묶어줄게. 가만히 있어.','루카스'],['핀은 잠깐 맡아줘요. 금방 다시 받을 거니까.','애인'],['✦ 꽃 핀이 소지품으로 돌아왔다.','']];
+    st.script={i:0,lines:ln,after:()=>setMode('idle')};say(...ln[0]);return;}
   if(m.id==='lgame'){hideDlg();setMode('mg2');MG2.start(lgameEnd,'애인은 어느 쪽?');return;}   // 동료의 집: 이심전심
   if(m.id==='sync'){   // 이심전심 (잠입마다 한 번)
     if(st.inf&&st.inf.tried){beep(220,.15);toast('이심전심은 한 번만 할 수 있어.');return;}
@@ -1379,6 +1390,7 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
   const i=st.invSel|0, k=(st.inv||[])[i]; if(!k){closeMenu();return;}
   const take=()=>{st.inv.splice(i,1);saveGame();};
   if(act==='idrop'){take();closeMenu();beep(440,.08);toast('✦ '+ITEMS[k].name+'을(를) 버렸다.');return;}
+  if(k==='fpin'&&act==='iuse'){take();st.owned.fpin=true;closeMenu();beep(1320,.08);toast('✦ 꽃 핀을 악세사리에 넣었다.');return;}   // 꽃 핀: 사용 → 악세사리칸
   if(act==='iuse'&&(k==='partifact'||k==='flower')){closeMenu();beep(220,.15);toast('내가 사용할 수 없어.');return;}
   if(act==='iuse'){closeMenu();beep(1320,.08);
     if(k==='cake'&&(st.drunkN|0)>=DRUNK_MAX)dkMark('f');
@@ -1389,6 +1401,11 @@ function useItem(act){   // 소지품: 사용 / 주기 / 파기
   const leoBy=withLeoNow()||(st.room==='prince'&&!st.leo), adrBy=(st.bro&&st.room==='brother'&&!st.broAway)||(st.room==='adrroom'&&st.adrHere);
   const juliaBy=st.room==='bprince'&&!st.leo;   // 대공자 방: 율리아
   const loverBy=st.room==='lhouse'&&!st.leo;    // 동료의 집: 애인
+  if(k==='fpin'){   // 꽃 핀: 애인에게만 (이스터에그)
+    if(!loverBy){closeMenu();beep(220,.15);toast('줄 수 없는 아이템이야.');return;}
+    closeMenu();beep(1320,.08);take();st.loverPin=true;saveGame();setMode('leo');
+    const ln=[['나 주는 거예요? 평생 간직할게요.','애인'],['사실 그의 위치를 알 수 있는 아티팩트다. 비밀이지만.','루카스'],['너무 마음에 들어요. 고마워요.','애인']];
+    st.script={i:0,lines:ln,after:()=>setMode('idle')};say(...ln[0]);return;}
   if(k==='partifact'){   // 분홍색 아티팩트: 레오나르드에게만 (부르기·왕세자 방)
     if(!leoBy){closeMenu();beep(220,.15);toast(adrBy||juliaBy||loverBy?'레오나르드에게만 줄 수 있어.':'줄 사람이 없다.');return;}
     closeMenu();beep(1320,.08);take();st.leoArtifact=true;saveGame();setMode('leo');
@@ -1781,13 +1798,13 @@ function saveGame(){
   if(restoring) return;
   try{
     localStorage.setItem(SAVE_KEY,JSON.stringify({room:st.room,outfit:st.outfit,theme:st.theme,gold:st.gold,bg:st.bg,
-      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,drunkN:st.drunkN,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,leoArtifact:st.leoArtifact,badenOk:st.badenOk,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,mecOk:st.mecOk,mecWait:st.mecWait,eyemaskOk:st.eyemaskOk,blushOk:st.blushOk,dk:st.dk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,dq:st.dq,withLeo:st.withLeo,loverOk:st.loverOk,loverMailT:st.loverMailT,ttl:st.ttl,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
+      lastSleep:st.lastSleep,lastPet:st.lastPet,lastEat:st.lastEat,owned:st.owned,wear:st.wear,lastCook:st.lastCook,drunkUntil:st.drunkUntil,drunkN:st.drunkN,bro:st.bro,poison:st.poison,inf:st.inf,cookStreak:st.cookStreak,chefOk:st.chefOk,dead:st.dead,cookOk:st.cookOk,glovesOk:st.glovesOk,bunnyOk:st.bunnyOk,relMaxSince:st.relMaxSince,artifactOk:st.artifactOk,maskOk:st.maskOk,berryOk:st.berryOk,hungerAsked:st.hungerAsked,letter:st.letter,letterDone:st.letterDone,bdayOk:st.bdayOk,plClear:st.plClear,leoArtifact:st.leoArtifact,badenOk:st.badenOk,myCode:st.myCode,myUid:st.myUid,myName:st.myName,friends:st.friends,inbox:st.inbox,mailSeen:st.mailSeen,mailCheckT:st.mailCheckT,mailPending:st.mailPending,letterOk:st.letterOk,npcMailT:st.npcMailT,inv:st.inv,fame:st.fame,fameT:st.fameT,niko:st.niko,adrMeet:st.adrMeet,adrRel:st.adrRel,adrSeen:st.adrSeen,mecOk:st.mecOk,mecWait:st.mecWait,eyemaskOk:st.eyemaskOk,blushOk:st.blushOk,dk:st.dk,sleepStart:st.sleepStart,rel:st.rel,relT:st.relT,dq:st.dq,withLeo:st.withLeo,loverOk:st.loverOk,loverMailT:st.loverMailT,loverPin:st.loverPin,ttl:st.ttl,sick:st.sick,cry:st.cry,sleeping:st.mode==='sleep'}));
   }catch(e){}
 }
 function loadGame(){
   try{
     const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return;
-    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','drunkN','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','leoArtifact','badenOk','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','mecOk','mecWait','eyemaskOk','blushOk','dk','sleepStart','rel','relT','dq','withLeo','loverOk','loverMailT','ttl']) if(d[k]!==undefined) st[k]=d[k];
+    for(const k of ['room','outfit','theme','gold','bg','lastSleep','lastPet','lastEat','sick','cry','owned','wear','lastCook','drunkUntil','drunkN','bro','poison','inf','cookStreak','chefOk','dead','cookOk','glovesOk','bunnyOk','relMaxSince','artifactOk','maskOk','berryOk','hungerAsked','letter','letterDone','bdayOk','plClear','leoArtifact','badenOk','myCode','myUid','myName','friends','inbox','mailSeen','mailCheckT','mailPending','letterOk','npcMailT','inv','fame','fameT','niko','adrMeet','adrRel','adrSeen','mecOk','mecWait','eyemaskOk','blushOk','dk','sleepStart','rel','relT','dq','withLeo','loverOk','loverMailT','loverPin','ttl']) if(d[k]!==undefined) st[k]=d[k];
     if(!PLACES[st.room]) st.room='bed';
     if(st.room==='brother'&&!st.bro) st.room='bed';
     if(st.room==='dorm'&&!st.inf) st.room='bed';
