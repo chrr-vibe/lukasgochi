@@ -1366,13 +1366,13 @@ function duelEnd(score){   // 기억 결투 결과
 }
 function plEnd(ok){   // 플레로마 잡기 결과 (5번 소탕하면 니콜라우스 방 해금)
   setMode('leo');
-  if(ok){const was=st.plClear|0;st.plClear=was+1;let rev='';if(st.niko){const T=ttlState();T.pc=(T.pc|0)+1;if(T.pc<=10)rev='✦ 계시 ('+T.pc+'/10)';if(T.pc>=10)ttlUnlock('christ');}if(!st.niko&&st.room==='street')dqEvent('pl');
+  if(ok){const was=st.plClear|0;st.plClear=was+1;if(!st.niko&&st.room==='street')dqEvent('pl');
     let fame;
     if(was<PL_UNLOCK) fame='✦ 명성이 올라갔다. ('+st.plClear+'/'+PL_UNLOCK+')';   // 해금 전: 5번까지 숫자 표시
     else if(st.niko){st.fame=Math.min(FAME_MAX,(st.fame|0)+1);st.fameT=Date.now();fame='✦ 명성이 올라갔다.';
       if(st.fame>=FAME_MAX&&!st.letterOk){st.letterOk=true;setTimeout(()=>unlockNotice('편지 관리 해금! (니콜라우스 방)'),5200);setTimeout(()=>fbCheckMail(true),6000);}}   // 해금 후: 니콜라우스로 소탕해야 명성 +1
     saveGame();
-    st.script={i:0,lines:[['✦ 플레로마를 소탕했다.',''],...(fame?[[fame,'']]:[]),...(rev?[[rev,'']]:[])],after:()=>{setMode('idle');if(was<PL_UNLOCK&&st.plClear>=PL_UNLOCK)unlockNotice('니콜라우스 방 해금! (바이에른 궁)');}};}
+    st.script={i:0,lines:fame?[['✦ 플레로마를 소탕했다.',''],[fame,'']]:[['✦ 플레로마를 소탕했다.','']],after:()=>{setMode('idle');if(was<PL_UNLOCK&&st.plClear>=PL_UNLOCK)unlockNotice('니콜라우스 방 해금! (바이에른 궁)');}};}
   else if(st.niko&&(st.plClear|0)>=PL_UNLOCK&&(st.fame|0)>0){st.fame=Math.max(0,(st.fame|0)-2);st.fameT=Date.now();saveGame();   // 니콜라우스로 실패: 명성 2칸 하락
     st.script={i:0,lines:[['✦ 플레로마가 달아났다...',''],['✦ 명성이 떨어졌다.','']],after:()=>setMode('idle')};}
   else st.script={i:0,lines:[['✦ 플레로마가 달아났다...','']],after:()=>setMode('idle')};
@@ -1380,8 +1380,9 @@ function plEnd(ok){   // 플레로마 잡기 결과 (5번 소탕하면 니콜라
 }
 function pl3End(ok){   // 갤러그식 플레로마 잡기 결과: 성공 → 명성 유지 + 익명의 팬 편지 / 실패 → 명성 2/3 하락
   setMode('leo');
-  if(ok){st.fameT=Date.now();st.inbox=st.inbox||[];st.inbox.push({id:'npc_fan_'+Date.now(),from:'익명의 팬',text:'당신을 사모하고 있습니다...',t:Date.now(),read:false});saveGame();
-    st.script={i:0,lines:[['✦ 플레로마를 소탕해 명성이 유지된다.',''],['✦ 익명의 팬으로부터 편지가 왔다.','']],after:()=>setMode('idle')};}
+  if(ok){st.fameT=Date.now();const fan=Math.random()<.3;if(fan){st.inbox=st.inbox||[];st.inbox.push({id:'npc_fan_'+Date.now(),from:'익명의 팬',text:'당신을 사모하고 있습니다...',t:Date.now(),read:false});}   // 팬 편지 30%
+    const T=ttlState();T.gc=(T.gc|0)+1;const rev=T.gc<=10?'✦ 계시 ('+T.gc+'/10)':'';if(T.gc>=10)ttlUnlock('christ');saveGame();   // 갤러그 10회 → 그리스도 (gc: 갤러그 전용 카운트, 예전 리듬게임 카운트 pc는 안 씀)
+    st.script={i:0,lines:[['✦ 플레로마를 소탕해 명성이 유지된다.',''],...(fan?[['✦ 익명의 팬으로부터 편지가 왔다.','']]:[]),...(rev?[[rev,'']]:[])],after:()=>setMode('idle')};}
   else{st.fame=Math.max(0,(st.fame|0)-Math.ceil((st.fame|0)*2/3));st.fameT=Date.now();saveGame();
     st.script={i:0,lines:[['✦ 플레로마 소탕에 실패해 명성이 크게 하락한다.','']],after:()=>setMode('idle')};}
   say(...st.script.lines[0]);
