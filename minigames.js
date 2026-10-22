@@ -1,7 +1,7 @@
 // 미니게임 코드(MG/MG2/MG3/MG4/MG5/MG6) — 미니게임 수정 작업이 아니면 열지 말 것
 const MG=(()=>{
   const CFG={combo:10,timeLimit:40000,perfect:80,good:150,speed:50,holdRate:.28,gapMin:520,gapMax:1250,plSpeed:75,plGapMin:350,plGapMax:850};   // pl*: 플레로마(명성용) 테마일 때만 더 빠르고 촘촘하게
-  const LINE_Y=ROOM_Y+74, LX={L:30,R:98};
+  const LINE_Y=ROOM_Y+74, LX={L:30,M:64,R:98};   // M: 니콜라우스 플레로마일 때만 쓰는 가운데 레인
   const r=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w|0,h|0);};
   const bmp=(rows,x,y,pal)=>rows.forEach((row,j)=>{for(let i=0;i<row.length;i++){const c=pal[row[i]];if(c){ctx.fillStyle=c;ctx.fillRect((x|0)+i,(y|0)+j,1,1);}}});
   const HEART=['.KK.KK.','KPPKPPK','KPWPPPK','KPPPPPK','.KPPPK.','..KPK..','...K...'], HP={K:'#5a1030',P:'#ff4f8f',W:'#ffd6e8'};
@@ -14,11 +14,11 @@ const MG=(()=>{
   const textC=(s,cx,y,col,k=1)=>text(s,Math.round(cx-((String(s).length*4-1)*k)/2),y,col,k);
   const stars=[...Array(46)].map((_,i)=>({x:Math.random()*W,y:Math.random()*ROOM_H,s:[8,16,30][i%3],c:['#6f7bd8','#c9d2ff','#ffffff','#ffd6f0','#9ff0ff'][i%5]}));
   let s=null;
-  function chart(pl){const gMin=pl?CFG.plGapMin:CFG.gapMin,gMax=pl?CFG.plGapMax:CFG.gapMax,n=[];let t=1400;while(t<CFG.timeLimit+3000){const lane=Math.random()<.5?'L':'R',hold=Math.random()<CFG.holdRate?450+Math.random()*650:0;
+  function chart(pl,lanes){const gMin=pl?CFG.plGapMin:CFG.gapMin,gMax=pl?CFG.plGapMax:CFG.gapMax,n=[];let t=1400;while(t<CFG.timeLimit+3000){const lane=lanes[Math.random()*lanes.length|0],hold=Math.random()<CFG.holdRate?450+Math.random()*650:0;
     n.push({lane,t,hold,state:'wait'});t+=hold+gMin+Math.random()*(gMax-gMin);}return n;}
-  const EXIT=['GGGGGGGGG','GGGGGGWWG','GGGWWWWWG','GGWGWWGGG','GGGGWWWGG','GGGWGGGWG','GGWGGGGWG','GWGGGGGGG','GGGGGGGGG'], EP={G:'#1fae5a',W:'#ffffff'};   // 비상구 픽토그램 (플레로마)
+  const EXIT=['GGGGGGGGG','GGGGGGWWG','GGGWWWWWG','GGWGWWGGG','GGGGWWWGG','GGGWGGGWG','GGWGGGGWG','GWGGGGGGG','GGGGGGGGG'], EP={G:'#1fae5a',W:'#ffffff'}, EPR={G:'#d8283a',W:'#ffffff'};   // 비상구 픽토그램 (플레로마) · EPR: 가운데 레인용 빨간색
   const lamps=[14,64,114];
-  function start(onEnd,theme){s={t0:performance.now(),now:0,notes:chart(theme==='pleroma'),spd0:theme==='pleroma'?CFG.plSpeed:CFG.speed,combo:0,best:0,fx:[],pops:[],held:{L:false,R:false},flash:{L:0,R:0},phase:'play',endT:0,onEnd,theme:theme||''};
+  function start(onEnd,theme,mid){const lanes=mid?['L','M','R']:['L','R'];s={t0:performance.now(),now:0,lanes,notes:chart(theme==='pleroma',lanes),spd0:theme==='pleroma'?CFG.plSpeed:CFG.speed,combo:0,best:0,fx:[],pops:[],held:{L:false,M:false,R:false},flash:{L:0,M:0,R:0},phase:'play',endT:0,onEnd,theme:theme||''};
     beep(660,.08);setTimeout(()=>beep(990,.1),160);closeMenu();}
   const spd=()=>s.spd0*(1+Math.min(s.combo,10)*.03);
   const yOf=t=>LINE_Y-(t-s.now)*spd()/1000;
@@ -29,11 +29,11 @@ const MG=(()=>{
   function finish(ok){if(s.phase!=='play')return;s.phase=ok?'clear':'fail';s.endT=s.now;
     if(ok)[1320,1568,1760,2093].forEach((f,i)=>setTimeout(()=>beep(f,.12,'square',.05),i*110));else[440,330,220].forEach((f,i)=>setTimeout(()=>beep(f,.16,'triangle',.06),i*150));
     setTimeout(()=>{const cb=s&&s.onEnd;s=null;cb&&cb(ok);},1700);}
-  function press(lane){if(!s)return;s.held[lane]=true;s.flash[lane]=s.now;if(s.phase!=='play')return;
+  function press(lane){if(!s||!s.lanes.includes(lane))return;s.held[lane]=true;s.flash[lane]=s.now;if(s.phase!=='play')return;
     let b=null,bd=1e9;for(const n of s.notes){if(n.lane!==lane||n.state!=='wait')continue;const d=Math.abs(s.now-n.t);if(d<bd){bd=d;b=n;}if(n.t-s.now>400)break;}
     if(b&&bd<=CFG.good){const p=bd<=CFG.perfect;pop(p?'PERFECT':'GOOD',lane,p?'#fff36b':'#9ff0ff');burst(lane,p?14:9);beep(lane==='L'?1320:990,.06,'square',.05);
       if(b.hold)b.state='holding';else good(b);} else beep(330,.03,'square',.02);}
-  function release(lane){if(!s)return;s.held[lane]=false;
+  function release(lane){if(!s||!s.lanes.includes(lane))return;s.held[lane]=false;
     for(const n of s.notes)if(n.lane===lane&&n.state==='holding'){if(s.now<n.t+n.hold-CFG.good)miss(n,lane);else{good(n);pop('OK',lane,'#fff36b');burst(lane,10);}}}
   function update(now){if(!s)return;s.now=now-s.t0;if(s.phase!=='play')return;
     for(const n of s.notes){if(n.state==='wait'&&s.now-n.t>CFG.good)miss(n,n.lane);else if(n.state==='holding'&&s.now>=n.t+n.hold){good(n);pop('OK',n.lane,'#fff36b');burst(n.lane,10);beep(1760,.06);}}
@@ -50,12 +50,12 @@ const MG=(()=>{
     for(const p of stars){const y=ROOM_Y+((p.y+s.now/1000*p.s)%ROOM_H);if(((s.now/250+p.x)|0)%7)r(p.x,y,1,p.s>20?2:1,p.c);}
     const bx=Math.sin(s.now/900)*10;for(let i=0;i<5;i++)bmp(i%2?BUG2:BUG,22+i*18+bx,ROOM_Y+3+(i%2)*2+((s.now/300|0)%2),i%2?BP2:BP);
     }
-    for(const l of ['L','R']){r(LX[l]-8,ROOM_Y+12,17,ROOM_H-12,pl?'rgba(60,220,120,.08)':l==='L'?'rgba(255,90,160,.10)':'rgba(150,100,255,.10)');r(LX[l]-9,ROOM_Y+12,1,ROOM_H-12,'rgba(255,255,255,.12)');r(LX[l]+9,ROOM_Y+12,1,ROOM_H-12,'rgba(255,255,255,.12)');}
+    for(const l of s.lanes){r(LX[l]-8,ROOM_Y+12,17,ROOM_H-12,pl?(l==='M'?'rgba(230,50,70,.10)':'rgba(60,220,120,.08)'):l==='L'?'rgba(255,90,160,.10)':'rgba(150,100,255,.10)');r(LX[l]-9,ROOM_Y+12,1,ROOM_H-12,'rgba(255,255,255,.12)');r(LX[l]+9,ROOM_Y+12,1,ROOM_H-12,'rgba(255,255,255,.12)');}
     r(0,LINE_Y-1,W,3,'rgba(255,60,80,.35)');r(0,LINE_Y,W,1,'#ff3b4f');
-    for(const l of ['L','R']){const on=s.held[l]||s.now-s.flash[l]<90;if(pl)bmp(EXIT,LX[l]-4,LINE_Y-4,on?EP:{G:'rgba(255,255,255,.18)',W:'rgba(255,255,255,.5)'});else bmp(l==='L'?HEART:POISON,LX[l]-3,LINE_Y-4-(l==='L'?0:1),on?(l==='L'?HP:PP):{K:'rgba(255,255,255,.35)'});}
+    for(const l of s.lanes){const on=s.held[l]||s.now-s.flash[l]<90;if(pl)bmp(EXIT,LX[l]-4,LINE_Y-4,on?(l==='M'?EPR:EP):{G:'rgba(255,255,255,.18)',W:'rgba(255,255,255,.5)'});else bmp(l==='L'?HEART:POISON,LX[l]-3,LINE_Y-4-(l==='L'?0:1),on?(l==='L'?HP:PP):{K:'rgba(255,255,255,.35)'});}
     for(const n of s.notes){if(n.state==='done'||n.state==='miss')continue;const yh=yOf(n.t);if(yh<ROOM_Y-30)break;const x=LX[n.lane];
-      if(n.hold){const yt=Math.max(ROOM_Y+12,yOf(n.t+n.hold)),yb=n.state==='holding'?LINE_Y:yh;if(yb>yt){r(x-2,yt,5,yb-yt,pl?'#3fd47a':n.lane==='L'?'#ff8fbf':'#b48cff');r(x-1,yt,1,yb-yt,'rgba(255,255,255,.6)');for(let y=yt;y<yb;y+=4)r(x-2,y,5,1,'rgba(0,0,0,.25)');r(x-3,yt-1,7,2,pl?'#1fae5a':n.lane==='L'?'#ff4f8f':'#9b5cff');}}
-      const yy=n.state==='holding'?LINE_Y:yh;if(yy>ROOM_Y+8){if(pl)bmp(EXIT,x-4,yy-4,EP);else bmp(n.lane==='L'?HEART:POISON,x-3,yy-4,n.lane==='L'?HP:PP);}}
+      if(n.hold){const yt=Math.max(ROOM_Y+12,yOf(n.t+n.hold)),yb=n.state==='holding'?LINE_Y:yh;if(yb>yt){r(x-2,yt,5,yb-yt,pl?(n.lane==='M'?'#ff5a6a':'#3fd47a'):n.lane==='L'?'#ff8fbf':'#b48cff');r(x-1,yt,1,yb-yt,'rgba(255,255,255,.6)');for(let y=yt;y<yb;y+=4)r(x-2,y,5,1,'rgba(0,0,0,.25)');r(x-3,yt-1,7,2,pl?(n.lane==='M'?'#d8283a':'#1fae5a'):n.lane==='L'?'#ff4f8f':'#9b5cff');}}
+      const yy=n.state==='holding'?LINE_Y:yh;if(yy>ROOM_Y+8){if(pl)bmp(EXIT,x-4,yy-4,n.lane==='M'?EPR:EP);else bmp(n.lane==='L'?HEART:POISON,x-3,yy-4,n.lane==='L'?HP:PP);}}
     s.fx=s.fx.filter(p=>s.now-p.t<500);for(const p of s.fx){const k=(s.now-p.t)/1000;r(p.x+p.vx*k,p.y+p.vy*k+40*k*k,1,1,p.c);}
     s.pops=s.pops.filter(p=>s.now-p.t<600);for(const p of s.pops){const k=(s.now-p.t)/600;textC(p.txt,LX[p.lane],LINE_Y-16-k*8,p.c);}
     if(s.combo>=1&&s.phase==='play'){textC(s.combo+' COMBO',64,ROOM_Y+15,s.combo>=7?'#fff36b':'#ffffff');}
