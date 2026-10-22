@@ -895,7 +895,9 @@ function cafeAct(id){
     st.choice={cancel:true,title:'주문하기 · '+st.gold+'G',opts:[['esp','에스프레소',CAFE_PRICE+'G'],['milk','스팀 우유',CAFE_PRICE+'G'],['juice','생과일 주스',CAFE_PRICE+'G']],pick:k=>{
       if(st.gold<CAFE_PRICE){beep(220,.15);toast('골드가 부족해. ('+st.gold+'/'+CAFE_PRICE+'G)');return;}
       st.gold-=CAFE_PRICE;saveGame();
-      if(k==='esp') cafeScript([['곧 서버가 에스프레소를 들고 왔다. ...물과 큰 컵을 함께 달라는 요구는 안되겠지.','루카스']]);
+      if(k==='esp'&&w==='lover') cafeScript([['그가 서버에게 커다란 컵과 따뜻한 물 한잔을 받아왔다. 내 아메리카노...','루카스']]);
+      else if(k==='milk'&&w==='lover') cafeScript([['그에게 내밀었다. 이건 그의 취향이다.','루카스']]);
+      else if(k==='esp') cafeScript([['곧 서버가 에스프레소를 들고 왔다. ...물과 큰 컵을 함께 달라는 요구는 안되겠지.','루카스']]);
       else if(k==='milk') cafeScript([['근 며칠 건강이 크게 좋진 않다. 티나기 전에 빠르게 잠재우는 게 낫다.','루카스']]);
       else cafeScript(w?pickOne(CAFE_JUICE[w]):[['과일의 종류는 적혀있지 않다. 주인 마음일까? 오늘의 과일?','루카스']]);}};
     st.menu='choice';st.cur=0;renderMenu();return;}
