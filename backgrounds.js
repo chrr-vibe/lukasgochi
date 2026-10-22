@@ -211,6 +211,64 @@ function makeRoom(room,lampOn,night){
       R(x,38,28,6,5,'#fff3b0');
       x.fillStyle='rgba(255,240,170,.22)';x.beginPath();x.moveTo(38,33);x.lineTo(44,33);x.lineTo(56,70);x.lineTo(26,70);x.closePath();x.fill();
     }
+  }else if(room==='cafe'){
+    // ---- 카페 (상점가·바덴 거리 풍 앤틱 카페, 바깥 테라스 자리) ----
+    R(x,0,0,128,12,night?'#1b1f4a':'#b9d4ea');
+    if(night){for(const [sx,sy] of [[10,3],[46,5],[84,2],[116,6]])R(x,sx,sy,1,1,'#fff8c8');}
+    else{R(x,18,3,12,3,'#ffffff');R(x,21,1,6,2,'#ffffff');R(x,92,4,14,3,'#ffffff');}
+    // 크림색 석조 건물 + 처마 몰딩
+    R(x,0,8,128,54,'#efe0c4');R(x,0,8,128,3,'#c9b28e');R(x,0,11,128,1,'#8a6a4a');
+    for(let j=14;j<30;j+=4)for(let i=((j/4)%2?0:6);i<128;i+=12)R(x,i,j,1,3,'#e2cfae');   // 돌 이음매
+    // 2층 아치 창 + 꽃 상자
+    const lit=[];
+    for(const wx of [6,30,86,110]){const on=night&&(wx%3!==0);if(on)lit.push(wx);
+      R(x,wx,14,12,13,'#5a3a24');x.fillStyle='#5a3a24';x.beginPath();x.arc(wx+6,15,6,Math.PI,0);x.fill();
+      R(x,wx+1,15,10,11,on?'#ffd98a':'#8fa6b8');x.fillStyle=on?'#ffd98a':'#8fa6b8';x.beginPath();x.arc(wx+6,15,5,Math.PI,0);x.fill();
+      R(x,wx+6,10,1,16,'#5a3a24');R(x,wx+1,20,10,1,'#5a3a24');
+      R(x,wx-1,27,14,3,'#7a5236');for(let i=0;i<6;i++)R(x,wx+i*2,25+(i%2),2,2,['#e05a6a','#ffd36b','#ff8fb1','#c59cff','#e05a6a','#ffffff'][i]);R(x,wx,26,12,1,'#5fae5a');}
+    // 금색 테두리 간판 (CAFE)
+    R(x,0,31,128,7,'#2f4a3a');R(x,0,31,128,1,'#d9b030');R(x,0,37,128,1,'#d9b030');
+    const LT={C:['###','#..','#..','#..','###'],A:['.#.','#.#','###','#.#','#.#'],F:['###','#..','##.','#..','#..'],E:['###','#..','##.','#..','###']};
+    [...'CAFE'].forEach((ch,i)=>bitmap(x,LT[ch],57+i*4,32,'#ffd36b'));
+    for(const dx of [50,76]){R(x,dx,33,2,1,'#d9b030');R(x,dx,35,2,1,'#d9b030');R(x,dx+(dx<64?2:-1),34,1,1,'#d9b030');}
+    // 줄무늬 차양 (버건디·크림) + 물결 끝단
+    for(let i=0;i<128;i+=6)R(x,i,38,6,6,(i/6)%2?'#8a2f3a':'#f3e7d0');
+    for(let i=0;i<128;i+=6){x.fillStyle=(i/6)%2?'#8a2f3a':'#f3e7d0';x.beginPath();x.arc(i+3,44,3,0,Math.PI);x.fill();}
+    // 1층 진녹색 목조 가게 앞 (큰 창 + 가운데 유리문)
+    R(x,0,46,128,16,'#2f4a3a');R(x,0,46,128,1,'#1f3328');
+    for(const [wx,ww] of [[4,40],[84,40]]){R(x,wx,48,ww,12,'#d9b030');R(x,wx+1,49,ww-2,10,night?'#ffe0a0':'#c8d8d0');
+      for(let i=wx+10;i<wx+ww;i+=10)R(x,i,49,1,10,'#d9b030');
+      if(!night)for(let i=wx+2;i<wx+ww-2;i+=5)R(x,i,56,3,2,'#8a5a3c');}   // 안쪽 진열 빵
+    R(x,56,47,16,15,'#1f3328');R(x,58,49,12,13,night?'#ffd98a':'#a8c0b8');R(x,63,49,2,13,'#1f3328');R(x,60,55,1,2,'#d9b030');R(x,67,55,1,2,'#d9b030');
+    // 벽걸이 등 (문 양옆)
+    for(const lx of [51,75]){R(x,lx,47,2,1,'#2f2f36');R(x,lx,48,3,4,night?'#fff3b0':'#e8e2c8');R(x,lx,48,3,1,'#2f2f36');R(x,lx,52,3,1,'#2f2f36');}
+    // 돌바닥
+    R(x,0,62,128,26,'#8a7f72');for(let j=62;j<88;j+=3)for(let i=((j/3)%2?0:3);i<128;i+=6)R(x,i,j,5,2,'#9c9184');
+    R(x,0,62,128,1,'#6f665b');
+    // 테라스: 둥근 대리석 테이블 + 철제 의자
+    const table=(tx)=>{R(x,tx+7,70,2,12,'#2f2f36');R(x,tx+4,82,8,1,'#2f2f36');
+      x.fillStyle='#f4f1ea';x.beginPath();x.ellipse(tx+8,69,9,2.5,0,0,7);x.fill();R(x,tx-1,69,18,1,'#cfc6b8');
+      R(x,tx+4,66,3,2,'#ffffff');R(x,tx+5,65,1,1,'#ffffff');R(x,tx+7,67,1,1,'#ffffff');R(x,tx+10,66,2,2,'#ff8fb1');R(x,tx+10,65,2,1,'#5fae5a');};   // 찻잔 + 작은 꽃병
+    const chair=(cx,f)=>{R(x,cx,64,1,18,'#2f2f36');R(x,cx+f*6,74,1,8,'#2f2f36');R(x,Math.min(cx,cx+f*6),74,7,1,'#2f2f36');
+      x.strokeStyle='#2f2f36';x.lineWidth=1;x.beginPath();x.arc(cx+f*2,66,2,0,7);x.stroke();};
+    table(8);chair(3,1);chair(30,-1);
+    table(102);chair(97,1);chair(124,-1);
+    // 앤틱 가스 가로등 (밤엔 불이 켜짐)
+    R(x,0,22,2,44,'#2f2f36');R(x,2,22,4,1,'#2f2f36');R(x,3,23,5,6,night?'#fff3b0':'#d8d4c4');R(x,2,23,7,1,'#2f2f36');R(x,2,29,7,1,'#2f2f36');R(x,5,19,1,3,'#2f2f36');
+    // 차양 끝 전구 줄
+    for(let i=4;i<128;i+=8)R(x,i,47,1,1,night?'#fff3b0':'#cfc6b8');
+    if(night){
+      x.fillStyle='rgba(16,18,60,.45)';x.fillRect(0,0,128,88);
+      for(const wx of lit){R(x,wx+1,15,10,11,'#ffd98a');R(x,wx+6,15,1,11,'#5a3a24');R(x,wx+1,20,10,1,'#5a3a24');}
+      for(const [wx,ww] of [[4,40],[84,40]]){R(x,wx+1,49,ww-2,10,'#ffe0a0');for(let i=wx+10;i<wx+ww;i+=10)R(x,i,49,1,10,'#d9b030');}
+      R(x,58,49,12,13,'#ffd98a');R(x,63,49,2,13,'#1f3328');
+      for(const lx of [51,75]){R(x,lx,49,3,3,'#fff3b0');x.fillStyle='rgba(255,220,140,.2)';x.beginPath();x.arc(lx+1,50,8,0,7);x.fill();}
+      for(let i=4;i<128;i+=8){R(x,i,47,1,1,'#fff3b0');x.fillStyle='rgba(255,240,170,.35)';x.fillRect(i-1,46,3,3);}
+      [...'CAFE'].forEach((ch,i)=>bitmap(x,LT[ch],57+i*4,32,'#ffe680'));   // 간판 글씨도 불빛
+      R(x,3,23,5,6,'#fff3b0');
+      x.fillStyle='rgba(255,240,170,.22)';x.beginPath();x.moveTo(3,29);x.lineTo(8,29);x.lineTo(22,72);x.lineTo(0,72);x.closePath();x.fill();
+      x.fillStyle='rgba(255,220,140,.12)';x.fillRect(0,62,128,26);   // 테라스에 번지는 불빛
+    }
   }else if(room==='street'||room==='bstreet'){
     // ---- 프로이센 거리 (18세기 · 중세풍 목조 골목) / 바덴 거리 (색만 다르게) ----
     const bd=room==='bstreet', lit=[];
