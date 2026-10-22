@@ -258,7 +258,8 @@ function load(k,src){total++;const im=new Image();im.onload=()=>loaded++;im.src=
 load('bang',SPR.bang); load('tail',SPR.tail); load('leo',SPR.leo); load('glasses',SPR.glasses); load('drunk',SPR.drunk); load('eli',SPR.eli); load('monocle',SPR.monocle); load('heart',SPR.heart); load('leoHome',SPR.leoHome); load('leoGlasses',SPR.leoGlasses); load('niko',SPR.niko); load('julia',SPR.julia); load('leoAcad',SPR.leoAcad); load('juliaAcad',SPR.juliaAcad); load('juliaLockL',SPR.juliaLockL); load('juliaLockR',SPR.juliaLockR); load('nikoBang',SPR.nikoBang); load('nikoMask',SPR.nikoMask); load('leoBook',SPR.leoBook); load('adr',SPR.adr); load('broHead',SPR.broHead); for(const k of ['heart','broHead','leoHome','adr']) load(k+'Bang',SPR[k+'Bang']); load('jerome',SPR.jerome); load('jeromeBang',SPR.jeromeBang); load('onesie',SPR.onesie); load('mask',SPR.mask); load('gloves',SPR.gloves); if(SPR.eras){load('eras',SPR.eras); if(SPR.erasBang) load('erasBang',SPR.erasBang);}
 for(const k of ['meck','meckLockL','meckLockR']) if(SPR[k]) load(k,SPR[k]);   // 메클렌부르크 (옆머리 갈기 흔들림)
 if(SPR.blush) load('blush',SPR.blush);   // 취권 블러셔
-if(SPR.flowerPin) load('flowerPin',SPR.flowerPin);   // 꽃 핀 (루카스·애인 공용 오버레이)
+if(SPR.flowerPin) load('flowerPin',SPR.flowerPin);
+if(SPR.loverShoes) load('loverShoes',SPR.loverShoes);   // 애인 신발 (카페에 불렀을 때)   // 꽃 핀 (루카스·애인 공용 오버레이)
 if(SPR.readNews) load('readNews',SPR.readNews);   // 루카스 신문 읽기: 신문만 (옷 위에 얹음)
 for(const k of ['lover','loverLockL','loverLockR','loverSleep','loverSleepLockL','loverSleepLockR']) if(SPR[k]) load(k,SPR[k]);   // 동료의 집: 애인 (깨어 있을 때 / 같이 잘 때)
 for(const o in SPR.outfits) for(const k in SPR.outfits[o]) load(o+':'+k,SPR.outfits[o][k]);
@@ -659,6 +660,7 @@ function drawLeo(x,t){
     const a=.09*Math.sin(t/1000*2*Math.PI*1.3), dy=Math.abs(Math.sin(t/1000*Math.PI*2.6))*-2, cx=Math.round(x)+CH/2, cy=CHY+CH;
     ctx.save();ctx.translate(cx,cy+dy);ctx.rotate(a);ctx.drawImage(figure(L.who,t),-CH/2,-CH,CH,CH);ctx.restore();return;}
   ctx.drawImage(figure(L.who,t),Math.round(x),CHY,CH,CH);
+  if(L.who==='lover'&&st.room==='cafe'&&imgs.loverShoes&&imgs.loverShoes.naturalWidth) ctx.drawImage(imgs.loverShoes,Math.round(x),CHY,CH,CH);   // 카페: 걸어 들어올 때도 신발
 }
 function drawAdr(x,t){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure('adr',t),Math.round(x),CHY,CH,CH);}
 function drawEras(x,t){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure(imgs.eras?'eras':'leo',t),Math.round(x),CHY,CH,CH);}
@@ -685,7 +687,7 @@ function drawLover(x,t){   // 동료의 집: 늘 있는 애인 (책·신문은 �
 }
 function drawCafeMate(x,t){   // 카페: 불러온 사람 (책 읽기 땐 레오나르드는 안경+책, 나머지는 루카스처럼 책만)
   const w=st.cafeWith, rd=st.mode==='book';
-  if(w==='lover'){drawLover(x,t);if(rd)drawLeoReading(x,'book',true);return;}
+  if(w==='lover'){drawLover(x,t);if(imgs.loverShoes&&imgs.loverShoes.naturalWidth)ctx.drawImage(imgs.loverShoes,Math.round(x),CHY,CH,CH);if(rd)drawLeoReading(x,'book',true);return;}
   const k=cafeFig(w); if(!imgs[k]||!imgs[k].naturalWidth) return;
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(figure(k,t),Math.round(x),CHY,CH,CH);
   if(rd) drawLeoReading(x,'book',w!=='leo');
