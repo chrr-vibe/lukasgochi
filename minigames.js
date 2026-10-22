@@ -1,4 +1,4 @@
-// 미니게임 코드(MG/MG2/MG3/MG4/MG5) — 미니게임 수정 작업이 아니면 열지 말 것
+// 미니게임 코드(MG/MG2/MG3/MG4/MG5/MG6) — 미니게임 수정 작업이 아니면 열지 말 것
 const MG=(()=>{
   const CFG={combo:10,timeLimit:40000,perfect:80,good:150,speed:50,holdRate:.28,gapMin:520,gapMax:1250,plSpeed:75,plGapMin:350,plGapMax:850};   // pl*: 플레로마(명성용) 테마일 때만 더 빠르고 촘촘하게
   const LINE_Y=ROOM_Y+74, LX={L:30,R:98};
@@ -235,4 +235,42 @@ const MG5=(()=>{
     ctx.textAlign='start';
   }
   return {start,move,submit,update,draw,active:()=>!!s,info:()=>s&&{phase:s.phase,round:s.round,wins:s.wins,coinSlot:s.slot[s.coin],cur:s.cur}};
+})();
+
+const MG6=(()=>{   // 내기하기 (상점가 밤): 1~50 숫자 맞히기 — 10단위 → 3단위 → 1단위로 좁혀감, 기회 7번
+  const r=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w|0,h|0);};
+  const MAX=7;
+  let s=null;
+  function start(){s={ans:1+(Math.random()*50|0),used:0,lo:1,hi:50,last:'',t0:performance.now()};beep(440,.1,'triangle',.06);setTimeout(()=>beep(660,.14,'triangle',.06),150);}
+  function opts(){const n=s.hi-s.lo+1,step=n>10?10:n>3?3:1,o=[];
+    for(let a=s.lo;a<=s.hi;a+=step){const b=Math.min(s.hi,a+step-1);o.push(['bn'+a+'_'+b,a===b?String(a):a+'-'+b]);}
+    return o;}
+  function pick(id){const[a,b]=id.slice(2).split('_').map(Number);s.used++;
+    if(s.ans>=a&&s.ans<=b){
+      if(a===b)return {state:'win',used:s.used,ans:s.ans};
+      s.lo=a;s.hi=b;s.last='HIT';[880,1320].forEach((f,i)=>setTimeout(()=>beep(f,.08,'square',.05),i*90));}
+    else{s.last=b<s.ans?'UP':'DOWN';beep(s.last==='UP'?990:330,.12,'square',.05);}
+    if(s.used>=MAX)return {state:'lose',used:s.used,ans:s.ans};
+    return {state:'go',used:s.used,ans:s.ans};}
+  function title(){const L={UP:'▲ UP! ',DOWN:'▼ DOWN! ',HIT:'✦ 범위 적중! '}[s.last]||'';return L+'남은 기회 '+(MAX-s.used)+'/'+MAX;}
+  function draw(t){if(!s)return;const Y=ROOM_Y,H2=ROOM_H,cx=64;
+    r(0,Y,W,H2,'#1c0f22');
+    for(let i=0;i<8;i++){ctx.fillStyle=i%2?'#3a1530':'#4e1c3c';ctx.beginPath();ctx.moveTo(cx,Y-2);ctx.lineTo(i*16,Y+64);ctx.lineTo(i*16+16,Y+64);ctx.closePath();ctx.fill();}   // 천막 줄무늬
+    r(0,Y+60,W,4,'#2a0f22');for(let i=0;i<W;i+=8){ctx.fillStyle='#c9a24a';ctx.beginPath();ctx.moveTo(i,Y+64);ctx.lineTo(i+8,Y+64);ctx.lineTo(i+4,Y+68);ctx.closePath();ctx.fill();}   // 술 장식
+    r(0,Y+68,W,H2-68,'#150a1a');
+    ctx.fillStyle='rgba(255,200,120,.08)';ctx.beginPath();ctx.moveTo(cx-6,Y+8);ctx.lineTo(cx+6,Y+8);ctx.lineTo(cx+40,Y+H2);ctx.lineTo(cx-40,Y+H2);ctx.closePath();ctx.fill();   // 등불 빛
+    r(cx,Y,1,6,'#6b4a2a');r(cx-3,Y+6,7,6,'#c98a2a');r(cx-2,Y+7,5,4,'#ffd27a');   // 매달린 등불
+    for(let i=0;i<6;i++){const tw=(Math.sin(t/400+i*1.7)+1)/2;ctx.fillStyle='rgba(255,240,180,'+(.2+tw*.6)+')';r((i*37+9)%W,Y+10+(i*23)%40,1,1,ctx.fillStyle);}   // 반짝이
+    r(18,Y+70,92,5,'#5a1f4a');r(18,Y+70,92,1,'#c9a24a');r(22,Y+75,84,8,'#3e1434');for(let i=24;i<104;i+=6)r(i,Y+83,3,2,'#c9a24a');   // 천 덮은 탁자
+    r(cx-8,Y+66,16,4,'#6b4a2a');r(cx-6,Y+65,12,1,'#c9a24a');   // 받침
+    const g=(Math.sin(t/500)+1)/2, R0=11;
+    ctx.fillStyle='rgba(170,120,255,'+(.10+g*.12)+')';ctx.beginPath();ctx.arc(cx,Y+54,R0+6,0,7);ctx.fill();   // 수정구슬 빛
+    ctx.fillStyle='#6a4fc0';ctx.beginPath();ctx.arc(cx,Y+54,R0,0,7);ctx.fill();
+    ctx.fillStyle='#9a7ff0';ctx.beginPath();ctx.arc(cx,Y+54,R0-2,0,7);ctx.fill();
+    ctx.fillStyle='rgba(220,200,255,'+(.35+g*.3)+')';ctx.beginPath();ctx.arc(cx+Math.sin(t/700)*3,Y+55+Math.cos(t/900)*2,4,0,7);ctx.fill();   // 안개
+    r(cx-6,Y+47,3,2,'#fff');r(cx-7,Y+49,1,2,'#fff');
+    ctx.textAlign='center';ctx.font='bold 8px sans-serif';ctx.fillStyle='#ffe9a8';ctx.fillText('내기 · 남은 기회 '+(MAX-s.used)+'/'+MAX,cx,Y+12+8);
+    if(s.last){ctx.font='bold 11px sans-serif';ctx.fillStyle=s.last==='UP'?'#9ff0ff':s.last==='DOWN'?'#ff8fb1':'#fff3a0';ctx.fillText(s.last==='HIT'?'적중!':s.last,cx,Y+36);}
+    ctx.textAlign='start';}
+  return {start,opts,pick,title,draw,stop:()=>{s=null;},active:()=>!!s};
 })();
