@@ -1178,7 +1178,6 @@ function doAction(m){
   if(m.id==='browse'&&inRoom(m)){openSub('shop');return;}   // 상점가: 구경하기
   if(m.id==='bet'&&inRoom(m)){   // 상점가: 내기하기
     if(!isNight()){beep(220,.15);toast('내기는 밤에만 할 수 있어.');return;}
-    if(betDone()){beep(220,.15);toast('오늘은 이미 내기를 했어. 내일 다시 오자.');return;}
     closeMenu();beep(1320,.08);betStart();return;}
   if(m.id==='gleo'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 만날 수 있어.');return;}
   if(m.id==='call'&&inRoom(m)&&!avail(m)){beep(220,.15,'square',.05);toast('레오나르드와의 관계가 가득 차야 부를 수 있어.');return;}
@@ -1340,9 +1339,10 @@ function betToday(){   // 내기하기: 현실 날짜 (마지막 도전일은 SA
   const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
 function betDone(){try{return localStorage.getItem(SAVE_KEY+':bet')===betToday();}catch(e){return false;}}
 function betStart(){
+  st.betReward=!betDone();   // 하루 최초 시도에서만 보상 (시작 시점에 기록해 새로고침 방지)
   try{localStorage.setItem(SAVE_KEY+':bet',betToday());}catch(e){}
   MG6.start();setMode('leo');
-  st.script={i:0,lines:[['✦ 으슥한 천막 안, 수정구슬이 희미하게 빛난다.',''],['✦ 1부터 50 사이의 숫자 하나를 맞혀라. 기회는 7번.',''],['✦ 내기는 현실 시간으로 하루에 한 번만 할 수 있다.','']],after:betAsk};
+  st.script={i:0,lines:[['✦ 으슥한 천막 안, 수정구슬이 희미하게 빛난다.',''],['✦ 1부터 50 사이의 숫자 하나를 맞혀라. 기회는 7번.',''],['✦ '+(st.betReward?'오늘의 첫 도전이다. 맞히면 보상을 받는다.':'오늘은 이미 보상을 받았다. 보상은 없지만 도전은 가능하다.'),'']],after:betAsk};
   say(...st.script.lines[0]);
 }
 function betAsk(){
@@ -1351,10 +1351,10 @@ function betAsk(){
   st.menu='choice';st.cur=0;renderMenu();
 }
 function betEnd(r){   // 내기 결과: 3번 만에 +5000G, 5번 안에 +3000G, 7번 안에 +2000G, 못 맞히면 정답 공개 (패널티 없음)
-  const win=r.state==='win', g=!win?0:r.used<=3?5000:r.used<=5?3000:2000;
-  if(win){st.gold+=g;saveGame();[1320,1760,2090].forEach((f,i)=>setTimeout(()=>beep(f,.1,'square',.05),i*110));} else beep(200,.25,'sawtooth',.05);
+  const win=r.state==='win', g=!win||!st.betReward?0:r.used<=3?5000:r.used<=5?3000:2000;
+  if(win){if(g){st.gold+=g;saveGame();}[1320,1760,2090].forEach((f,i)=>setTimeout(()=>beep(f,.1,'square',.05),i*110));} else beep(200,.25,'sawtooth',.05);
   setMode('leo');
-  st.script={i:0,lines:win?[['✦ 정답은 '+r.ans+'! '+r.used+'번 만에 맞혔다! (+'+g+'G)',''],['수정구슬도 별거 아니군.','루카스']]:[['✦ 기회를 모두 썼다... 정답은 '+r.ans+'.',''],['…다음엔 맞힌다.','루카스']],
+  st.script={i:0,lines:win?[['✦ 정답은 '+r.ans+'! '+r.used+'번 만에 맞혔다!'+(g?' (+'+g+'G)':' (오늘 보상은 이미 받았다)'),''],['수정구슬도 별거 아니군.','루카스']]:[['✦ 기회를 모두 썼다... 정답은 '+r.ans+'.',''],['…다음엔 맞힌다.','루카스']],
     after:()=>{MG6.stop();setMode('idle');}};
   say(...st.script.lines[0]);
 }
